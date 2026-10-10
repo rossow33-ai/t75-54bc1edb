@@ -78,7 +78,7 @@ button.main{padding:13px;margin-top:0}
 </style>
 </head>
 <body>
-<div id="lock" style="position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:20;padding:20px">
+<div id="lock" style="display:none!important;position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:20;padding:20px">
  <div id="lockForm" class="card" style="width:100%;max-width:320px;text-align:center">
   <h1 style="margin:0 0 6px">75 <span>HARD</span></h1><p class="hist" id="lockMsg">Enter passcode</p>
   <div id="dots" style="display:flex;justify-content:center;gap:14px;margin:14px 0 20px"></div>
@@ -163,7 +163,6 @@ button.main{padding:13px;margin-top:0}
   <div class="row"><strong>Menu</strong><button class="ghost" onclick="document.getElementById('menuModal').classList.add('hide')">Close</button></div>
   <button class="alt" id="mExport">⬇️ Save a backup file</button>
   <label class="alt" style="display:block;text-align:center;cursor:pointer">⬆️ Restore from backup<input type="file" accept=".json,application/json" id="mImport" class="hide"></label>
-  <button class="alt" id="mPin" style="background:var(--line)"></button>
   <p class="hist">Your data is stored only on this phone. Sharing the link never shares your data.</p>
 </div></div>
 <div class="modal hide" id="missModal"><div class="card">
@@ -174,9 +173,9 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261010b";
+const APPV="v20261010c";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
-const PINK="75hard_pw";
+const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
   const ib=await idbGet();try{const a=JSON.parse(localStorage.getItem("75hard_v2")||"null"),b=ib&&JSON.parse(ib);if(b&&(!a||(b.savedAt||"")>(a.savedAt||"")))localStorage.setItem("75hard_v2",ib)}catch(e){}
   if(!window._booted){window._booted=1;boot({})}}else if(!quiet){document.getElementById("lockMsg").textContent="Wrong passcode"}}
@@ -385,13 +384,12 @@ $("sldR").oninput=()=>pView();
 $("gifPlay").onclick=()=>{gifOn=!gifOn;$("gifPlay").textContent=gifOn?"⏸ Pause":"▶ Play";gifSync()};
 const setSp=n=>{$("gifSpeed").value=Math.round(800/n);document.querySelectorAll("#gifSpd button").forEach(b=>{const on=+b.dataset.sp===n;b.style.background=on?"var(--acc)":"none";b.style.color=on?"#fff":"var(--mut)"});gifSync()};
 document.querySelectorAll("#gifSpd button").forEach(b=>b.onclick=()=>setSp(+b.dataset.sp));setSp(2);
-$("menuBtn").onclick=()=>{$("mPin").textContent=localStorage.getItem(PINK)?"🔓 Remove passcode":"🔒 Set a 4-digit passcode";$("menuModal").classList.remove("hide")};
+$("menuBtn").onclick=()=>{$("menuModal").classList.remove("hide")};
 $("mExport").onclick=async()=>{const blob=new Blob([JSON.stringify(S)],{type:"application/json"}),f=new File([blob],"75hard-backup-"+todayISO()+".json",{type:"application/json"});
   if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]});return}catch(e){}}
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=f.name;a.click()};
 $("mImport").onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const n=JSON.parse(t);if(!n.days)throw 0;
   if(!confirm("Replace the data on this phone with this backup?"))return;S=n;save();location.reload()}catch(x){alert("That file isn't a 75 Hard backup.")}})};
-$("mPin").onclick=()=>{if(localStorage.getItem(PINK)){localStorage.removeItem(PINK);alert("Passcode removed.")}else{const p=prompt("Choose a 4-digit passcode");if(p&&/^\d{4}$/.test(p)){localStorage.setItem(PINK,p);alert("Passcode set.")}else if(p)alert("Use exactly 4 digits.")}$("menuModal").classList.add("hide")};
 $("backToday").onclick=()=>{viewDay=null;render()};
 $("startBtn").onclick=()=>{const d=Math.max(1,Math.min(75,parseInt($("curDay").value)||1));S.start=addDays(todayISO(),-(d-1));S.completed=[];for(let i=1;i<d;i++)S.completed.push(i);save();render();checkMissed()};
 $("completeBtn").onclick=()=>{const n=curDay();if(!S.completed.includes(n))S.completed.push(n);save();render()};
