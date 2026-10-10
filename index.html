@@ -161,6 +161,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 <div class="modal hide" id="menuModal"><div class="card">
   <div class="row"><strong>Menu</strong><button class="ghost" onclick="document.getElementById('menuModal').classList.add('hide')">Close</button></div>
+  <button class="alt" id="mGif" style="background:var(--acc)">🎞️ Export progress GIF</button>
   <button class="alt" id="mExport">⬇️ Save a backup file</button>
   <label class="alt" style="display:block;text-align:center;cursor:pointer">⬆️ Restore from backup<input type="file" accept=".json,application/json" id="mImport" class="hide"></label>
   <p class="hist">Your data is stored only on this phone. Sharing the link never shares your data.</p>
@@ -173,7 +174,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261010h";
+const APPV="v20261010i";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -386,6 +387,19 @@ $("gifPlay").onclick=()=>{gifOn=!gifOn;$("gifPlay").textContent=gifOn?"⏸ Pause
 const setSp=n=>{$("gifSpeed").value=Math.round(800/n);document.querySelectorAll("#gifSpd button").forEach(b=>{const on=+b.dataset.sp===n;b.style.background=on?"var(--acc)":"none";b.style.color=on?"#fff":"var(--mut)"});gifSync()};
 document.querySelectorAll("#gifSpd button").forEach(b=>b.onclick=()=>setSp(+b.dataset.sp));setSp(2);
 $("menuBtn").onclick=()=>{$("menuModal").classList.remove("hide")};
+$("mGif").onclick=async()=>{const ds=gifList();if(!ds.length){alert("Add some progress photos first.");return}
+  const btn=$("mGif");btn.textContent="Building GIF…";btn.disabled=true;
+  try{const {GIFEncoder,quantize,applyPalette}=await import("./gifenc.js");const W=360,H=540,c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
+    const g=GIFEncoder(),delay=+$("gifSpeed").value||400;
+    for(let i=0;i<ds.length;i++){const im=await new Promise(r=>{const m=new Image();m.onload=()=>r(m);m.src=ds[i].photo});
+      x.fillStyle="#000";x.fillRect(0,0,W,H);x.drawImage(im,0,0,W,H);
+      x.font="bold 22px -apple-system,system-ui,sans-serif";const t=ds[i].lbl,tw=x.measureText(t).width;x.fillStyle="rgba(0,0,0,.65)";x.fillRect(10,H-46,tw+20,34);x.fillStyle="#fff";x.fillText(t,20,H-21);
+      x.font="bold 16px -apple-system,system-ui,sans-serif";x.fillStyle="rgba(0,0,0,.55)";x.fillRect(W-98,10,88,26);x.fillStyle="#ff4d2e";x.fillText("75 HARD",W-90,29);
+      const d=x.getImageData(0,0,W,H).data,pal=quantize(d,256);g.writeFrame(applyPalette(d,pal),W,H,{palette:pal,delay:i===ds.length-1?delay*3:delay})}
+    g.finish();const blob=new Blob([g.bytes()],{type:"image/gif"}),f=new File([blob],"75hard-progress-"+todayISO()+".gif",{type:"image/gif"});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]})}catch(e){}}else{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=f.name;a.click()}}
+  catch(e){alert("Couldn't build the GIF: "+e.message)}
+  btn.textContent="🎞️ Export progress GIF";btn.disabled=false};
 $("mExport").onclick=async()=>{const blob=new Blob([JSON.stringify(S)],{type:"application/json"}),f=new File([blob],"75hard-backup-"+todayISO()+".json",{type:"application/json"});
   if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]});return}catch(e){}}
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=f.name;a.click()};
