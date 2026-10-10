@@ -145,6 +145,11 @@ button.main{padding:13px;margin-top:0}
     </div>
   </section>
   <section class="card">
+    <div class="row"><strong>AI body scan summary</strong><span class="hist" id="aiDate"></span></div>
+    <div id="aiTxt" class="hist" style="white-space:pre-wrap;color:var(--txt);font-size:14px;margin-top:8px;line-height:1.45"></div>
+    <div class="row" style="margin-top:8px"><button class="ghost" id="aiPaste">📋 Paste new summary</button><button class="ghost" id="aiEdit">Edit</button></div>
+  </section>
+  <section class="card">
     <div class="row"><strong>History</strong><button class="ghost" id="failBtn">I missed a day, restart</button></div>
     <div class="hist" id="hist" style="margin-top:8px"></div>
   </section>
@@ -173,7 +178,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261010c";
+const APPV="v20261010d";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -384,6 +389,10 @@ $("sldR").oninput=()=>pView();
 $("gifPlay").onclick=()=>{gifOn=!gifOn;$("gifPlay").textContent=gifOn?"⏸ Pause":"▶ Play";gifSync()};
 const setSp=n=>{$("gifSpeed").value=Math.round(800/n);document.querySelectorAll("#gifSpd button").forEach(b=>{const on=+b.dataset.sp===n;b.style.background=on?"var(--acc)":"none";b.style.color=on?"#fff":"var(--mut)"});gifSync()};
 document.querySelectorAll("#gifSpd button").forEach(b=>b.onclick=()=>setSp(+b.dataset.sp));setSp(2);
+function aiShow(){const a=S.ai||{};$("aiTxt").textContent=a.text||"No summary yet. Copy one from your coach or AI and tap Paste.";$("aiDate").textContent=a.date?"updated "+a.date:""}
+$("aiPaste").onclick=async()=>{let t="";try{t=await navigator.clipboard.readText()}catch(e){}if(!t)t=prompt("Paste your summary")||"";if(!t.trim())return;S.ai={text:t.trim(),date:todayISO()};save();aiShow()};
+$("aiEdit").onclick=()=>{const t=prompt("Edit summary",(S.ai||{}).text||"");if(t===null)return;S.ai={text:t.trim(),date:todayISO()};save();aiShow()};
+aiShow();
 $("menuBtn").onclick=()=>{$("menuModal").classList.remove("hide")};
 $("mExport").onclick=async()=>{const blob=new Blob([JSON.stringify(S)],{type:"application/json"}),f=new File([blob],"75hard-backup-"+todayISO()+".json",{type:"application/json"});
   if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]});return}catch(e){}}
