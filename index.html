@@ -178,7 +178,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261010e";
+const APPV="v20261010f";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -204,8 +204,6 @@ const TASKS=[
  {id:"diet",t:"Diet",kind:"note",ph:"no cheats, no alcohol"},
  {id:"read",t:"Read 10 pages",kind:"pages"},
  {id:"water",t:"Water",s:"5 bottles = 1 gallon",kind:"water"},
-
- {id:"noenergy",t:"No energy drinks",kind:"check"},
  {id:"weight",t:"AM weight",s:"lbs",kind:"weight"},
  {id:"photo",t:"Progress photo",s:"Upload below",kind:"photo"}
 ];
