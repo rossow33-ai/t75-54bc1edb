@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="theme-color" content="#0f0f12">
+<link rel="apple-touch-icon" href="icon.png"><link rel="manifest" href="manifest.json"><meta name="apple-mobile-web-app-title" content="75 Hard"><title>75 Hard Tracker</title>
+<style>
+:root{--bg:#0f0f12;--card:#1a1a20;--txt:#f2f2f5;--mut:#8a8a96;--acc:#ff4d2e;--ok:#2ecc71;--blue:#3498db;--line:#2a2a33}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+main{max-width:520px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:28px;margin:4px 0 2px;letter-spacing:.5px}h1 span{color:var(--acc)}
+.sub{color:var(--mut);font-size:14px;margin-bottom:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.big{font-size:48px;font-weight:800;line-height:1}.big small{font-size:18px;color:var(--mut);font-weight:500}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin-top:12px}.bar div{height:100%;background:var(--acc);transition:width .3s}
+.task{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--line)}
+.task:last-child{border-bottom:0}
+.box{width:28px;height:28px;border-radius:8px;border:2px solid var(--mut);flex:none;display:grid;place-items:center;cursor:pointer}
+.task.done .box{background:var(--ok);border-color:var(--ok)}.task.done .box::after{content:"✓";color:#000;font-weight:800}
+.lbl{flex:1;font-size:16px}.lbl small{display:block;color:var(--mut);font-size:12px}
+.task.done .lbl>span{color:var(--mut)}
+.inp{background:var(--line);color:var(--txt);border:0;padding:8px 10px;border-radius:8px;font-size:15px;width:100%;margin-top:6px}
+.inrow{display:flex;gap:6px}.inrow .inp:first-child{width:90px;flex:none}
+.tally{display:flex;align-items:center;gap:8px;margin-top:6px}
+.tally button{width:34px;height:34px;border-radius:8px;border:0;background:var(--line);color:var(--txt);font-size:18px}
+.bottles{display:flex;gap:5px}.bottles i{width:16px;height:26px;border-radius:4px 4px 6px 6px;border:2px solid var(--blue);display:block}.bottles i.on{background:var(--blue)}
+.tally button.plus{width:auto;flex:1;height:42px;background:var(--blue);color:#fff;font-weight:700;font-size:16px}
+.tally b{font-size:20px;letter-spacing:2px;color:var(--blue);min-width:40px}
+button.main,label.main{width:100%;padding:14px;border:0;border-radius:12px;font-size:16px;font-weight:700;background:var(--acc);color:#fff;margin-top:6px;display:block;text-align:center}
+button.main:disabled{opacity:.35}
+button.alt{width:100%;padding:14px;border-radius:12px;font-size:16px;font-weight:700;background:var(--blue);color:#fff;border:0;margin-top:10px}
+.ghost{background:none;border:1px solid var(--line);color:var(--mut);padding:10px 14px;border-radius:10px;font-size:14px;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(15,1fr);gap:4px}
+.d{aspect-ratio:1;border-radius:4px;background:var(--line);font-size:8px;display:grid;place-items:center;color:var(--mut)}
+.d.ok{background:var(--ok);color:#000}.d.today{outline:2px solid var(--acc)}.d.view{outline:2px solid var(--blue)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.photo img{width:100%;border-radius:12px;margin-top:10px}
+.hist{font-size:13px;color:var(--mut)}
+.hide{display:none!important}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:grid;place-items:center;padding:20px;z-index:9}
+.modal .card{max-width:420px;width:100%}
+.stats{display:flex;justify-content:space-between;margin-top:8px;font-size:13px;color:var(--mut)}.stats b{display:block;color:var(--txt);font-size:18px}
+.banner{background:var(--blue);color:#fff;border-radius:10px;padding:8px 12px;font-size:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.banner button{background:#fff2;border:0;color:#fff;border-radius:8px;padding:6px 10px}
+
+/* compact phone layout */
+main{padding:calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 30px)}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.top h1{font-size:20px;margin:0}
+.top .dn{font-size:26px;font-weight:800}.top .dn small{font-size:14px;color:var(--mut);font-weight:500}
+.top .dt{font-size:12px;color:var(--mut)}
+.bar{height:6px;margin:6px 0 10px}
+.card{padding:10px 12px;border-radius:14px;margin-bottom:10px}
+.task{padding:7px 0;gap:10px;min-height:44px}
+.box{width:24px;height:24px;border-radius:7px}
+.lbl{display:flex;align-items:center;gap:6px;font-size:15px;min-width:0}
+.lbl>span{white-space:nowrap}
+.lbl small{display:none}
+.inp{margin:0;padding:7px 8px;font-size:16px;border-radius:8px}
+.inrow{flex:1;min-width:0;justify-content:flex-end}
+.inrow .inp:first-child{width:62px;text-align:center;padding:7px 4px}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input[type=number]{-moz-appearance:textfield}
+.inrow .inp:last-child{flex:1;min-width:0}
+.lbl>.inp{flex:1;min-width:0}
+.lbl>.inp.w{flex:none;width:80px;margin-left:auto;text-align:center}
+.tally{margin:0;gap:6px;flex:1;justify-content:flex-end}
+.bottles i{width:11px;height:20px;border-width:2px}
+.tally b{font-size:13px;min-width:0;letter-spacing:0}
+.tally button{height:32px;width:30px;font-size:16px}
+.tally button.plus{flex:none;height:32px;width:auto;padding:0 10px;font-size:14px}
+.ph{margin-left:auto;display:flex;align-items:center;gap:8px}
+.ph img{width:32px;height:32px;object-fit:cover;border-radius:6px;cursor:pointer}
+.ph label{padding:6px 10px;font-size:13px;color:var(--txt)}
+button.main{padding:13px;margin-top:0}
+.viewer img{width:100%;border-radius:12px}
+#clTitle{display:none}
+</style>
+</head>
+<body>
+<div id="lock" style="position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:20;padding:20px">
+ <div id="lockForm" class="card" style="width:100%;max-width:320px;text-align:center">
+  <h1 style="margin:0 0 6px">75 <span>HARD</span></h1><p class="hist" id="lockMsg">Enter passcode</p>
+  <div id="dots" style="display:flex;justify-content:center;gap:14px;margin:14px 0 20px"></div>
+  <div id="pad" style="display:grid;grid-template-columns:repeat(3,72px);gap:14px;justify-content:center"></div>
+ </div></div>
+<div id="appwrap" style="display:none"><main>
+<div class="top"><h1>75 <span>HARD</span></h1><div class="dt" id="sub"></div><div class="dn" id="dayNum"></div><button id="menuBtn" class="ghost" style="padding:4px 10px;font-size:18px;color:var(--txt)">☰</button></div><div id="savedTag" style="position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom) + 10px);background:var(--ok);color:#000;font-size:12px;font-weight:700;padding:4px 10px;border-radius:10px;opacity:.4;transition:opacity .4s;z-index:5">✓ Saved</div>
+<div class="bar" id="topbar"><div id="prog"></div></div>
+
+<section id="setup" class="card hide">
+  <h3 style="margin-top:0">Start your challenge</h3>
+  <p class="hist">Already in progress? Enter the day you're on today.</p>
+  <div class="row"><label class="hist">Today is Day <input type="number" id="curDay" min="1" max="75" value="1" class="inp" style="width:70px"></label><button class="main" style="width:auto;padding:10px 18px;margin:0" id="startBtn">Start</button></div>
+</section>
+
+<div id="app" class="hide">
+
+  <section class="card">
+    <div class="banner hide" id="viewBanner"><span id="viewTxt"></span><button id="backToday">Back to today</button></div>
+    <strong id="clTitle">Today</strong>
+    <div id="checklist"></div>
+  </section>
+
+  <input type="file" accept="image/*" id="photoIn" class="hide">
+  <button class="main" id="completeBtn"></button>
+  <button class="ghost hide" id="repeatBtn" style="width:100%;margin-top:8px">✈️ Crossed dateline? Start next day now</button>
+
+  <section class="card" style="margin-top:14px">
+    <strong>AM weight</strong>
+    <svg id="chart" viewBox="0 0 300 100" style="width:100%;height:80px;margin-top:6px"></svg>
+    <div class="stats" id="wstats"></div>
+  </section>
+
+
+  <section class="card">
+    <strong>75 days</strong> <span class="hist">(tap a day to view or edit it)</span>
+    <div class="grid" id="grid" style="margin-top:10px"></div>
+  </section>
+  <section class="card">
+    <div class="row"><strong>Body scan</strong><span class="hist" id="compDay"></span></div>
+    <div class="stats" id="compStats" style="flex-wrap:wrap;row-gap:8px"></div>
+    <details style="margin-top:8px"><summary class="hist">Log a scan for this day</summary>
+      <div class="inrow" style="flex-wrap:wrap;gap:6px;margin-top:6px;justify-content:flex-start" id="compIn"></div>
+    </details>
+  </section>
+
+  <section class="card">
+    <div class="row"><strong>Progress</strong><span class="hist" id="gifInfo"></span></div>
+    <div id="pTabs" style="display:flex;gap:6px;margin-top:8px"><button class="ghost" data-m="cmp" style="flex:1">Day 1 vs Today</button><button class="ghost" data-m="gif" style="flex:1">GIF</button><button class="ghost" data-m="sld" style="flex:1">Slider</button></div>
+    <div id="modeCmp" style="display:flex;gap:6px;margin-top:8px">
+      <div style="position:relative;flex:1"><img id="cmpA" style="width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:10px;background:#000;display:block"><div id="cmpAL" style="position:absolute;left:8px;bottom:8px;background:#000a;padding:3px 8px;border-radius:8px;font-weight:700;font-size:13px"></div></div>
+      <div style="position:relative;flex:1"><img id="cmpB" style="width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:10px;background:#000;display:block"><div id="cmpBL" style="position:absolute;left:8px;bottom:8px;background:#000a;padding:3px 8px;border-radius:8px;font-weight:700;font-size:13px"></div></div>
+    </div>
+    <div id="modeGif">
+    <div style="position:relative;margin-top:8px" id="gifWrap">
+      <img id="gifImg" style="width:100%;max-height:60vh;aspect-ratio:2/3;object-fit:cover;border-radius:12px;background:#000;display:block">
+      <div id="gifLbl" style="position:absolute;left:10px;bottom:10px;background:#000a;padding:4px 10px;border-radius:8px;font-weight:700"></div>
+    </div>
+    <div class="row" style="margin-top:8px"><button class="ghost" id="gifPlay">⏸ Pause</button><div id="gifSpd" style="display:flex;gap:6px"><button class="ghost" data-sp="1">1x</button><button class="ghost" data-sp="2">2x</button><button class="ghost" data-sp="3">3x</button><button class="ghost" data-sp="4">4x</button></div><input type="hidden" id="gifSpeed" value="400"></div>
+    </div>
+    <div id="modeSld">
+      <div style="position:relative;margin-top:8px"><img id="sldImg" style="width:100%;max-height:60vh;aspect-ratio:2/3;object-fit:cover;border-radius:12px;background:#000;display:block"><div id="sldLbl" style="position:absolute;left:8px;bottom:8px;background:#000a;padding:3px 8px;border-radius:8px;font-weight:700;font-size:13px"></div></div>
+      <input type="range" id="sldR" min="0" max="0" value="0" style="width:100%;margin-top:10px">
+    </div>
+  </section>
+  <section class="card">
+    <div class="row"><strong>History</strong><button class="ghost" id="failBtn">I missed a day, restart</button></div>
+    <div class="hist" id="hist" style="margin-top:8px"></div>
+  </section>
+</div>
+</main></div>
+
+<div class="modal hide" id="photoModal" onclick="this.classList.add('hide')"><div class="card viewer" id="photoView"></div></div>
+<div class="modal hide" id="alignModal"><div class="card" style="max-width:360px">
+  <div class="row"><strong>Line yourself up</strong><span class="hist">drag to move</span></div>
+  <canvas id="alc" width="400" height="600" style="width:100%;border-radius:10px;background:#000;touch-action:none;margin-top:8px"></canvas>
+  <div class="row" style="margin-top:6px"><span class="hist">zoom</span><input type="range" id="alz" min="0.3" max="3" step="0.01" value="1" style="flex:1"></div>
+  <label class="hist"><input type="checkbox" id="alg" checked> show Day 1 ghost</label>
+  <div class="row" style="margin-top:8px"><button class="ghost" id="alCancel">Cancel</button><button class="main" style="width:auto;padding:10px 20px" id="alSave">Save photo</button></div>
+</div></div>
+<div class="modal hide" id="menuModal"><div class="card">
+  <div class="row"><strong>Menu</strong><button class="ghost" onclick="document.getElementById('menuModal').classList.add('hide')">Close</button></div>
+  <button class="alt" id="mExport">⬇️ Save a backup file</button>
+  <label class="alt" style="display:block;text-align:center;cursor:pointer">⬆️ Restore from backup<input type="file" accept=".json,application/json" id="mImport" class="hide"></label>
+  <button class="alt" id="mPin" style="background:var(--line)"></button>
+  <p class="hist">Your data is stored only on this phone. Sharing the link never shares your data.</p>
+</div></div>
+<div class="modal hide" id="missModal"><div class="card">
+  <h3 style="margin-top:0">You missed a day</h3>
+  <p class="hist" id="missText"></p>
+  <button class="alt" id="datelineBtn">✈️ Crossed dateline, continue</button>
+  <button class="main" id="restartBtn">Restart from Day 1</button>
+</div></div>
+
+<script>
+const APPV="v20261010b";
+(async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
+const PINK="75hard_pw";
+async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
+  const ib=await idbGet();try{const a=JSON.parse(localStorage.getItem("75hard_v2")||"null"),b=ib&&JSON.parse(ib);if(b&&(!a||(b.savedAt||"")>(a.savedAt||"")))localStorage.setItem("75hard_v2",ib)}catch(e){}
+  if(!window._booted){window._booted=1;boot({})}}else if(!quiet){document.getElementById("lockMsg").textContent="Wrong passcode"}}
+const idb=()=>new Promise((r,j)=>{const q=indexedDB.open("75hard",1);q.onupgradeneeded=()=>q.result.createObjectStore("kv");q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)});
+function idbPut(v){idb().then(db=>db.transaction("kv","readwrite").objectStore("kv").put(v,"state")).catch(()=>{})}
+function idbGet(){return Promise.race([new Promise(r=>setTimeout(()=>r(null),800)),idb().then(db=>new Promise(r=>{const q=db.transaction("kv").objectStore("kv").get("state");q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)})).catch(()=>null)])}
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
+let code="";const drawDots=()=>document.getElementById("dots").innerHTML=[0,1,2,3].map(i=>`<i style="width:14px;height:14px;border-radius:50%;border:2px solid var(--txt);background:${i<code.length?"var(--txt)":"none"}"></i>`).join("");
+document.getElementById("pad").innerHTML=["1","2","3","4","5","6","7","8","9","","0","⌫"].map(k=>k?`<button data-k="${k}" style="height:72px;border-radius:50%;border:0;background:${k==="⌫"?"none":"var(--line)"};color:var(--txt);font-size:28px">${k}</button>`:"<span></span>").join("");
+document.getElementById("pad").onclick=async e=>{const k=e.target.dataset&&e.target.dataset.k;if(!k)return;
+  if(k==="⌫")code=code.slice(0,-1);else if(code.length<4)code+=k;drawDots();
+  if(code.length===4){await tryPw(code);if(document.getElementById("lock")){code="";drawDots()}}};
+drawDots();
+if(!localStorage.getItem(PINK))tryPw("",true);
+function boot(PH){
+
+// task definitions. kind: check | workout | water | weight | photo | note
+const TASKS=[
+ {id:"w1",t:"Workout 1",s:"45 min minimum",kind:"workout"},
+ {id:"w2",t:"Workout 2",s:"45 min minimum, outside",kind:"workout"},
+ {id:"diet",t:"Diet",kind:"note",ph:"no cheats, no alcohol"},
+ {id:"water",t:"Water",s:"5 bottles = 1 gallon",kind:"water"},
+
+ {id:"noenergy",t:"No energy drinks",kind:"check"},
+ {id:"weight",t:"AM weight",s:"lbs",kind:"weight"},
+ {id:"photo",t:"Progress photo",s:"Upload below",kind:"photo"}
+];
+const K="75hard_v2";
+let S=JSON.parse(localStorage.getItem(K)||"null")||{start:null,completed:[],attempts:[],datelines:[],photos:{},days:{}};S.attempts=S.attempts||[];S.datelines=S.datelines||[];S.photos=S.photos||{};S.days=S.days||{};
+const PATCHES=[];
+S.patches=S.patches||[];PATCHES.forEach(p=>{if(!S.patches.includes(p.id)){p.apply(S);S.patches.push(p.id)}});
+let viewDay=null;
+const save=()=>{S.savedAt=new Date().toISOString();const J=JSON.stringify(S);try{localStorage.setItem(K,J)}catch(e){alert("Save failed: "+e.message)}idbPut(J);const t=document.getElementById("savedTag");if(t){t.textContent="✓ Saved "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});t.style.opacity=1;clearTimeout(save._t);save._t=setTimeout(()=>t.style.opacity=.4,1200)}};
+const iso=d=>{const x=new Date(d);x.setMinutes(x.getMinutes()-x.getTimezoneOffset());return x.toISOString().slice(0,10)};
+const todayISO=()=>iso(new Date());
+const addDays=(d,n)=>{const x=new Date(d+"T12:00:00");x.setDate(x.getDate()+n);return iso(x)};
+const daysBetween=(a,b)=>Math.round((new Date(b+"T12:00:00")-new Date(a+"T12:00:00"))/864e5);
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const dayIndex=()=>daysBetween(S.start,todayISO())+1;
+const curDay=()=>Math.max(1,Math.min(dayIndex(),75));
+const D=n=>(S.days[n]=S.days[n]||{tasks:{},water:0});
+
+function checkMissed(){
+  if(!S.start)return;
+  const n=dayIndex(),k=S.completed.length;
+  if(n>k+1&&k<75){
+    const missed=n-1-k;
+    $("missText").innerHTML=`Day ${k+1} wasn't marked complete${missed>1?` (${missed} calendar days passed)`:""}.<br><br>If you crossed the international dateline and lost a calendar day, continue and you'll pick up at Day ${k+1} today. Otherwise the rules say back to Day 1.`;
+    $("missModal").classList.remove("hide");
+  }
+}
+function datelineSkip(){
+  const n=dayIndex(),k=S.completed.length,missed=n-1-k;
+  S.start=addDays(S.start,missed);
+  S.datelines.push({date:todayISO(),type:`Lost ${missed} calendar day${missed>1?"s":""}, continued at Day ${k+1}`});
+  save();$("missModal").classList.add("hide");render();
+}
+function datelineRepeat(){
+  const n=dayIndex();
+  if(!confirm(`Start Day ${n+1} now even though the calendar date hasn't changed?`))return;
+  S.start=addDays(S.start,-1);
+  S.datelines.push({date:todayISO(),type:`Repeated date, started Day ${n+1} early`});
+  save();render();
+}
+function restart(reason){
+  S.attempts.push({start:S.start,reached:S.completed.length,end:todayISO(),reason});
+  S.archive=S.archive||[];
+  for(let i=1;i<=75;i++){const d=S.days[i]||{},ph=S.photos[i];if(d.weight||ph||d.comp)S.archive.push({date:addDays(S.start,i-1),weight:d.weight||null,photo:ph||null,comp:d.comp||null})}
+  S.start=todayISO();S.completed=[];S.days={};S.photos={};viewDay=null;save();
+  $("missModal").classList.add("hide");render();
+}
+
+function taskHTML(x,d,locked){
+  const done=!!d.tasks[x.id],dis=locked?"disabled":"";
+  let extra="";
+  if(x.kind==="workout")extra=`<div class="inrow"><input class="inp" type="number" inputmode="numeric" placeholder="min" data-f="${x.id}min" value="${esc(d[x.id+"min"])}" ${dis}><input class="inp" placeholder="${x.id==="w2"?"outdoor: hike…":"what"}" data-f="${x.id}note" value="${esc(d[x.id+"note"])}" ${dis}></div>`;
+  if(x.kind==="note")extra=`<input class="inp" placeholder="${x.ph}" data-f="${x.id}" value="${esc(d[x.id])}" ${dis}>`;
+  if(x.kind==="water"){const w=d.water||0;extra=`<div class="tally"><span class="bottles">${[0,1,2,3,4].map(i=>`<i class="${i<w?"on":""}"></i>`).join("")}</span><b>${w}/5</b><button class="plus" data-w="1" ${dis}>+1 bottle</button><button data-w="-1" ${dis} title="Undo">−</button></div>`}
+  if(x.kind==="weight")extra=`<input class="inp w" type="number" step="0.1" inputmode="decimal" placeholder="lbs" data-f="weight" value="${esc(d.weight)}" ${dis}>`;
+  if(x.kind==="photo"){const ph=S.photos[viewDay||curDay()];extra=`<div class="ph">${ph?`<img src="${ph}" data-view="1">`:""}<label class="ghost" for="photoIn">📷 ${ph?"Replace":"Upload"}</label></div>`}
+  return `<div class="task${done?" done":""}"><div class="box" data-t="${x.id}"></div><div class="lbl"><span>${x.t}</span>${x.s?`<small>${x.s}</small>`:""}${extra}</div></div>`;
+}
+
+function render(){
+  $("setup").classList.toggle("hide",!!S.start);$("app").classList.toggle("hide",!S.start);
+  if(!S.start){$("sub").textContent="";$("dayNum").textContent="";return}
+  const n=curDay(),v=viewDay||n,d=D(v),isToday=v===n,doneToday=S.completed.includes(n);
+  const locked=isToday&&doneToday&&false;
+  $("sub").textContent=new Date().toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+  $("dayNum").innerHTML=`${n}<small> / 75</small>`;
+  $("prog").style.width=(S.completed.length/75*100)+"%";
+  
+  $("viewBanner").classList.toggle("hide",isToday);$("viewTxt").textContent=`Viewing Day ${v}`;
+  $("clTitle").textContent=isToday?"Today":`Day ${v}`;
+  $("checklist").innerHTML=TASKS.map(x=>taskHTML(x,d,locked)).join("");
+  const all=TASKS.every(x=>d.tasks[x.id]);
+  const cb=$("completeBtn");cb.classList.toggle("hide",!isToday);
+  cb.disabled=!all||doneToday;
+  cb.textContent=doneToday?(S.completed.length>=75?"🏆 75 HARD COMPLETE":`✓ Day ${n} done. See you tomorrow`):all?`Complete Day ${n}`:`Finish all ${TASKS.length} tasks`;
+  $("repeatBtn").classList.toggle("hide",!(isToday&&doneToday&&S.completed.length<75));
+  // grid
+  const g=$("grid");g.innerHTML="";
+  for(let i=1;i<=75;i++){const c=document.createElement("div");
+    c.className="d"+(S.completed.includes(i)?" ok":"")+(i===n?" today":"")+(i===v&&!isToday?" view":"");c.textContent=i;
+    if(S.photos[i])c.style.boxShadow="inset 0 -3px 0 var(--blue)";
+    if(i<=n){c.style.cursor="pointer";c.onclick=()=>{viewDay=i===n?null:i;render();window.scrollTo({top:0,behavior:"smooth"})}}
+    g.appendChild(c)}
+  drawChart();drawComp();gifSync();
+  const h=[...S.attempts.map(a=>`Started ${a.start}, reached ${a.reached} days (${a.reason})`),...S.datelines.map(x=>`✈️ ${x.date}: ${x.type}`)];
+  $("hist").innerHTML=h.length?h.reverse().join("<br>"):"No restarts yet. Keep it that way.";
+}
+
+const COMP=[["bf","Body fat","%"],["muscle","Muscle","lb"],["skm","Skeletal","lb"],["visc","Visceral",""],["bmr","BMR","kcal"],["age","Met. age",""]];
+function drawComp(){
+  const scans=[];for(let i=1;i<=75;i++)if(S.days[i]&&S.days[i].comp)scans.push([i,S.days[i].comp]);
+  const v=viewDay||curDay(),c=(S.days[v]&&S.days[v].comp)||{};
+  $("compIn").innerHTML=COMP.map(([k,l,u])=>`<label class="hist" style="width:31%">${l}<input class="inp" style="width:100%" type="number" step="0.1" inputmode="decimal" data-c="${k}" value="${esc(c[k])}"></label>`).join("");
+  if(!scans.length){$("compStats").innerHTML=`<div>No scans yet</div>`;$("compDay").textContent="";return}
+  const [fd,f]=scans[0],[ld,l]=scans[scans.length-1];$("compDay").textContent=`latest: Day ${ld}`;
+  $("compStats").innerHTML=COMP.map(([k,lab,u])=>{if(l[k]==null)return"";const dlt=scans.length>1&&f[k]!=null?(l[k]-f[k]).toFixed(1):null;
+    return `<div style="width:33%">${lab}<b>${l[k]}${u&&u!=="kcal"?`<small style="font-size:12px;color:var(--mut)"> ${u}</small>`:""}</b>${dlt!==null?`<span style="font-size:11px">${dlt>0?"+":""}${dlt}</span>`:""}</div>`}).join("");
+}
+$("compIn")&&0;
+let gifI=0,gifT=null,gifOn=true;
+const TL=()=>{const out=(S.archive||[]).map(a=>({lbl:new Date(a.date+"T12:00").toLocaleDateString(undefined,{month:"short",day:"numeric"}),photo:a.photo,weight:a.weight}));
+  for(let i=1;i<=75;i++){const d=S.days[i]||{};if(d.weight||S.photos[i])out.push({lbl:"Day "+i,photo:S.photos[i],weight:d.weight})}return out};
+const gifDays=()=>Object.keys(S.photos||{}).map(Number).filter(d=>S.photos[d]).sort((a,b)=>a-b);
+const gifList=()=>TL().filter(x=>x.photo);
+function gifFrame(){const ds=gifList();if(!ds.length)return;gifI%=ds.length;$("gifImg").src=ds[gifI].photo;$("gifLbl").textContent=ds[gifI].lbl;gifI++}
+function pView(){const ds=gifList(),m=S.pmode||"gif";
+  document.querySelectorAll("#pTabs button").forEach(b=>{const on=b.dataset.m===m;b.style.background=on?"var(--acc)":"none";b.style.color=on?"#fff":"var(--mut)"});
+  $("pTabs").style.display=ds.length?"flex":"none";
+  ["Cmp","Gif","Sld"].forEach(k=>$("mode"+k).style.display=(ds.length&&m===k.toLowerCase())?(k==="Cmp"?"flex":""):"none");
+  if(!ds.length)return;
+  if(m==="cmp"){const f=ds[0],l=ds[ds.length-1];$("cmpA").src=f.photo;$("cmpAL").textContent=f.lbl;$("cmpB").src=l.photo;$("cmpBL").textContent=l.lbl}
+  if(m==="sld"){const r=$("sldR");r.max=ds.length-1;if(+r.value>ds.length-1||!r.dataset.t){r.value=ds.length-1;r.dataset.t=1}const x=ds[+r.value];$("sldImg").src=x.photo;$("sldLbl").textContent=x.lbl+"  ("+(+r.value+1)+"/"+ds.length+")"}
+}
+function gifSync(){pView();const ds=gifList();if((S.pmode||"gif")!=="gif"){clearInterval(gifT);$("gifInfo").textContent=ds.length?`${ds.length} photo${ds.length>1?"s":""}`:"upload photos to build your timelapse";return}$("gifWrap").style.display=ds.length?"":"none";
+  $("gifInfo").textContent=ds.length?`${ds.length} photo${ds.length>1?"s":""}`:"upload photos to build your timelapse";
+  clearInterval(gifT);gifFrame();if(gifOn&&ds.length>1)gifT=setInterval(gifFrame,+$("gifSpeed").value)}
+function drawChart(){
+  const pts=[];TL().forEach(x=>{const w=parseFloat(x.weight);if(w)pts.push([pts.length+1,w])});
+  const svg=$("chart");
+  if(!pts.length){svg.innerHTML=`<text x="150" y="55" fill="#8a8a96" font-size="12" text-anchor="middle">Log your AM weight to see the trend</text>`;$("wstats").innerHTML="";return}
+  const ws=pts.map(p=>p[1]),mn=Math.min(...ws)-1,mx=Math.max(...ws)+1,maxX=Math.max(pts[pts.length-1][0],7);
+  const X=i=>10+(i-1)/(maxX-1)*280,Y=w=>90-(w-mn)/(mx-mn)*80;
+  const path=pts.map((p,j)=>(j?"L":"M")+X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join(" ");
+  svg.innerHTML=`<path d="${path}" fill="none" stroke="#ff4d2e" stroke-width="2.5"/>`+pts.map(p=>`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="3.5" fill="#ff4d2e"/><text x="${X(p[0])}" y="${Y(p[1])-7}" fill="#8a8a96" font-size="9" text-anchor="middle">${p[1]}</text>`).join("");
+  const first=ws[0],last=ws[ws.length-1],ch=(last-first).toFixed(1);
+  $("wstats").innerHTML=`<div>Start<b>${first}</b></div><div>Current<b>${last}</b></div><div>Change<b style="color:${ch<=0?"var(--ok)":"var(--acc)"}">${ch>0?"+":""}${ch}</b></div>`;
+}
+
+// events (delegated)
+$("checklist").addEventListener("click",e=>{
+  const im=e.target.closest("[data-view]");if(im){$("photoView").innerHTML=`<img src="${im.src}">`;$("photoModal").classList.remove("hide");return}
+  const v=viewDay||curDay(),d=D(v);
+  const b=e.target.closest("[data-t]");if(b){d.tasks[b.dataset.t]=!d.tasks[b.dataset.t];save();render();return}
+  const w=e.target.closest("[data-w]");if(w){d.water=Math.max(0,(d.water||0)+parseInt(w.dataset.w));d.tasks.water=d.water>=5?1:0;save();render()}
+});
+$("checklist").addEventListener("input",e=>{
+  const f=e.target.dataset.f;if(!f)return;const d=D(viewDay||curDay());
+  d[f]=e.target.type==="number"?(e.target.value===""?"":parseFloat(e.target.value)):e.target.value;save();
+});
+$("checklist").addEventListener("change",e=>{
+  const f=e.target.dataset.f;if(!f)return;const v=viewDay||curDay(),d=D(v);
+  d[f]=e.target.type==="number"?(e.target.value===""?"":parseFloat(e.target.value)):e.target.value;
+  if(f==="weight"&&d.weight)d.tasks.weight=1;
+  if((f==="w1min"||f==="w2min")&&d[f]>=45)d.tasks[f.slice(0,2)]=1;
+  save();render();
+});
+let AL=null;
+function matchLight(){const ds=gifDays().filter(d=>d!==AL.v);if(!ds.length)return;const ref=new Image();ref.src=S.photos[ds[0]];if(!ref.complete)return;
+  const c=$("alc"),x=c.getContext("2d"),t=document.createElement("canvas");t.width=400;t.height=600;const tx=t.getContext("2d");tx.drawImage(ref,0,0,400,600);
+  const st=d=>{const m=[0,0,0],q=[0,0,0];let n=0;for(let y=60;y<380;y+=2)for(let X=120;X<280;X+=2){const i=(y*400+X)*4;for(let k=0;k<3;k++){m[k]+=d[i+k];q[k]+=d[i+k]*d[i+k]}n++}
+    return m.map((v,k)=>[v/n,Math.sqrt(Math.max(1,q[k]/n-(v/n)**2))])};
+  const img=x.getImageData(0,0,400,600),a=st(img.data),b=st(tx.getImageData(0,0,400,600).data),D=img.data;
+  for(let i=0;i<D.length;i+=4)for(let k=0;k<3;k++)D[i+k]=(D[i+k]-a[k][0])/a[k][1]*b[k][1]+b[k][0];
+  x.putImageData(img,0,0)}
+$("photoIn").onchange=e=>{
+  const f=e.target.files[0];if(!f)return;const img=new Image(),v=viewDay||curDay();
+  img.onload=()=>{const sc=Math.max(400/img.width,600/img.height);AL={img,v,s:sc,x:(400-img.width*sc)/2,y:(600-img.height*sc)/2,base:sc};
+    $("alz").value=1;const ds=gifDays().filter(d=>d!==v);AL.ghost=null;
+    if(ds.length){const g=new Image();g.onload=()=>{AL.ghost=g;alDraw()};g.src=S.photos[ds[0]]}
+    $("alignModal").classList.remove("hide");alDraw()};
+  img.src=URL.createObjectURL(f);e.target.value="";
+};
+function alDraw(ghost=true){const c=$("alc"),x=c.getContext("2d");x.fillStyle="#000";x.fillRect(0,0,400,600);
+  x.drawImage(AL.img,AL.x,AL.y,AL.img.width*AL.s,AL.img.height*AL.s);
+  if(ghost&&AL.ghost&&$("alg").checked){x.globalAlpha=.35;x.drawImage(AL.ghost,0,0,400,600);x.globalAlpha=1}}
+(()=>{const c=$("alc");let p=null;
+  c.onpointerdown=e=>{p=[e.clientX,e.clientY];c.setPointerCapture(e.pointerId)};
+  c.onpointermove=e=>{if(!p||!AL)return;const k=400/c.clientWidth;AL.x+=(e.clientX-p[0])*k;AL.y+=(e.clientY-p[1])*k;p=[e.clientX,e.clientY];alDraw()};
+  c.onpointerup=()=>p=null;
+  $("alz").oninput=()=>{const ns=AL.base*+$("alz").value,cx=200,cy=300;AL.x=cx-(cx-AL.x)*ns/AL.s;AL.y=cy-(cy-AL.y)*ns/AL.s;AL.s=ns;alDraw()};
+  $("alg").onchange=()=>alDraw();
+  $("alCancel").onclick=()=>{$("alignModal").classList.add("hide");AL=null};
+  $("alSave").onclick=()=>{alDraw(false);matchLight();const v=AL.v;S.photos[v]=$("alc").toDataURL("image/jpeg",.7);D(v).tasks.photo=1;
+    try{save()}catch(err){delete S.photos[v];save();alert("Phone storage for this app is full, photo not kept.")}
+    $("alignModal").classList.add("hide");AL=null;render()};
+})();
+document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.dataset.c;if(!k)return;const d=D(viewDay||curDay());d.comp=d.comp||{};
+  if(e.target.value==="")delete d.comp[k];else d.comp[k]=parseFloat(e.target.value);if(!Object.keys(d.comp).length)delete d.comp;save();render()});
+document.querySelectorAll("#pTabs button").forEach(b=>b.onclick=()=>{S.pmode=b.dataset.m;save();gifSync()});
+$("sldR").oninput=()=>pView();
+$("gifPlay").onclick=()=>{gifOn=!gifOn;$("gifPlay").textContent=gifOn?"⏸ Pause":"▶ Play";gifSync()};
+const setSp=n=>{$("gifSpeed").value=Math.round(800/n);document.querySelectorAll("#gifSpd button").forEach(b=>{const on=+b.dataset.sp===n;b.style.background=on?"var(--acc)":"none";b.style.color=on?"#fff":"var(--mut)"});gifSync()};
+document.querySelectorAll("#gifSpd button").forEach(b=>b.onclick=()=>setSp(+b.dataset.sp));setSp(2);
+$("menuBtn").onclick=()=>{$("mPin").textContent=localStorage.getItem(PINK)?"🔓 Remove passcode":"🔒 Set a 4-digit passcode";$("menuModal").classList.remove("hide")};
+$("mExport").onclick=async()=>{const blob=new Blob([JSON.stringify(S)],{type:"application/json"}),f=new File([blob],"75hard-backup-"+todayISO()+".json",{type:"application/json"});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]});return}catch(e){}}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=f.name;a.click()};
+$("mImport").onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const n=JSON.parse(t);if(!n.days)throw 0;
+  if(!confirm("Replace the data on this phone with this backup?"))return;S=n;save();location.reload()}catch(x){alert("That file isn't a 75 Hard backup.")}})};
+$("mPin").onclick=()=>{if(localStorage.getItem(PINK)){localStorage.removeItem(PINK);alert("Passcode removed.")}else{const p=prompt("Choose a 4-digit passcode");if(p&&/^\d{4}$/.test(p)){localStorage.setItem(PINK,p);alert("Passcode set.")}else if(p)alert("Use exactly 4 digits.")}$("menuModal").classList.add("hide")};
+$("backToday").onclick=()=>{viewDay=null;render()};
+$("startBtn").onclick=()=>{const d=Math.max(1,Math.min(75,parseInt($("curDay").value)||1));S.start=addDays(todayISO(),-(d-1));S.completed=[];for(let i=1;i<d;i++)S.completed.push(i);save();render();checkMissed()};
+$("completeBtn").onclick=()=>{const n=curDay();if(!S.completed.includes(n))S.completed.push(n);save();render()};
+$("datelineBtn").onclick=datelineSkip;
+$("restartBtn").onclick=()=>restart("Missed a day");
+$("repeatBtn").onclick=datelineRepeat;
+$("failBtn").onclick=()=>{if(confirm("Restart from Day 1 today?"))restart("Manual restart")};
+{const pa=S.savedAt;save();const t=$("savedTag");if(t&&pa)t.textContent="✓ Saved "+new Date(pa).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});if(0)t.textContent="✓ Saved "+new Date(S.savedAt).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});}render();checkMissed();
+document.addEventListener("visibilitychange",()=>{if(document.hidden)save();else{render();checkMissed()}});
+window.addEventListener("pagehide",save);
+
+}
+</script>
+</body></html>
