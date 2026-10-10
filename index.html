@@ -75,6 +75,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 button.main{padding:13px;margin-top:0}
 .viewer img{width:100%;border-radius:12px}
 #clTitle{display:none}
+.mh{font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9fb0d0;margin:18px 0 2px;border-bottom:1px solid #ffffff22;padding-bottom:6px}.mh:first-child{margin-top:0}
 .mi{display:block;width:100%;text-align:left;background:none;border:0;color:#fff;font-size:17px;padding:13px 0;cursor:pointer}
 .menu-open #menuModal{transform:none!important}.menu-open #menuDim{opacity:1!important;pointer-events:auto!important}
 </style>
@@ -168,8 +169,11 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 <div id="menuDim" onclick="menuClose()" style="position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .25s;z-index:30"></div>
 <nav id="menuModal" style="position:fixed;top:0;right:0;bottom:0;width:62%;max-width:320px;background:#16294f;transform:translateX(100%);transition:transform .28s ease;z-index:31;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top) + 64px) 22px calc(env(safe-area-inset-bottom) + 24px)">
+  <div class="mh">Uploads</div>
   <label class="mi">📷 Import from screenshot<input type="file" accept="image/*" multiple id="mShot" class="hide"></label>
+  <div class="mh">Share</div>
   <button class="mi" id="mGif">🎞️ Export progress GIF</button>
+  <div class="mh">Backups</div>
   <button class="mi" id="mExport">⬇️ Save a backup file</button>
   <label class="mi">⬆️ Restore from backup<input type="file" accept=".json,application/json" id="mImport" class="hide"></label>
   <p class="hist" style="margin-top:auto;color:#9fb0d0">Your data is stored only on this phone. Sharing the link never shares your data.</p>
@@ -182,7 +186,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261010k";
+const APPV="v20261010l";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
