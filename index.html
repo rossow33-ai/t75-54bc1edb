@@ -147,7 +147,7 @@ button.main{padding:13px;margin-top:0}
   <section class="card">
     <div class="row"><strong>AI body scan summary</strong><span class="hist" id="aiDate"></span></div>
     <div id="aiTxt" class="hist" style="white-space:pre-wrap;color:var(--txt);font-size:14px;margin-top:8px;line-height:1.45"></div>
-    <div class="row" style="margin-top:8px"><button class="ghost" id="aiPaste">📋 Paste new summary</button><button class="ghost" id="aiEdit">Edit</button></div>
+    <div class="row" style="margin-top:8px"><button class="ghost" id="aiRun">↻ Refresh</button><span class="hist" id="aiStat"></span></div>
   </section>
   <section class="card">
     <div class="row"><strong>History</strong><button class="ghost" id="failBtn">I missed a day, restart</button></div>
@@ -168,6 +168,7 @@ button.main{padding:13px;margin-top:0}
   <div class="row"><strong>Menu</strong><button class="ghost" onclick="document.getElementById('menuModal').classList.add('hide')">Close</button></div>
   <button class="alt" id="mExport">⬇️ Save a backup file</button>
   <label class="alt" style="display:block;text-align:center;cursor:pointer">⬆️ Restore from backup<input type="file" accept=".json,application/json" id="mImport" class="hide"></label>
+  <button class="alt" id="mKey" style="background:var(--line)"></button>
   <p class="hist">Your data is stored only on this phone. Sharing the link never shares your data.</p>
 </div></div>
 <div class="modal hide" id="missModal"><div class="card">
@@ -178,7 +179,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261010f";
+const APPV="v20261010g";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -390,11 +391,29 @@ $("sldR").oninput=()=>pView();
 $("gifPlay").onclick=()=>{gifOn=!gifOn;$("gifPlay").textContent=gifOn?"⏸ Pause":"▶ Play";gifSync()};
 const setSp=n=>{$("gifSpeed").value=Math.round(800/n);document.querySelectorAll("#gifSpd button").forEach(b=>{const on=+b.dataset.sp===n;b.style.background=on?"var(--acc)":"none";b.style.color=on?"#fff":"var(--mut)"});gifSync()};
 document.querySelectorAll("#gifSpd button").forEach(b=>b.onclick=()=>setSp(+b.dataset.sp));setSp(2);
-function aiShow(){const a=S.ai||{};$("aiTxt").textContent=a.text||"No summary yet. Copy one from your coach or AI and tap Paste.";$("aiDate").textContent=a.date?"updated "+a.date:""}
-$("aiPaste").onclick=async()=>{let t="";try{t=await navigator.clipboard.readText()}catch(e){}if(!t)t=prompt("Paste your summary")||"";if(!t.trim())return;S.ai={text:t.trim(),date:todayISO()};save();aiShow()};
-$("aiEdit").onclick=()=>{const t=prompt("Edit summary",(S.ai||{}).text||"");if(t===null)return;S.ai={text:t.trim(),date:todayISO()};save();aiShow()};
-aiShow();
-$("menuBtn").onclick=()=>{$("menuModal").classList.remove("hide")};
+const AIK="75hard_xai";let aiBusy=false,aiT=null;
+function aiShow(){const a=S.ai||{},k=localStorage.getItem(AIK);
+  $("aiTxt").textContent=a.text||(k?"Generating your first summary…":"Add your Grok (xAI) API key in the ☰ menu and this updates automatically when you add photos or weigh in.");
+  $("aiDate").textContent=a.date?"updated "+a.date:"";$("aiRun").style.display=k?"":"none"}
+function aiData(){const L=[];for(let i=1;i<=75;i++){const d=S.days[i];if(!d)continue;const p=[];
+  if(d.weight)p.push("AM weight "+d.weight+" lb");if(d.w1min)p.push("workout1 "+d.w1min+"min "+(d.w1note||""));if(d.w2min)p.push("workout2 "+d.w2min+"min "+(d.w2note||""));
+  if(d.comp)p.push("scan "+JSON.stringify(d.comp));if(p.length)L.push("Day "+i+": "+p.join("; "))}
+  (S.archive||[]).forEach(a=>{if(a.weight)L.unshift(a.date+" (earlier attempt): AM weight "+a.weight)});return L.join("\n")}
+function aiSig(){const ds=gifList();return ds.length+"|"+aiData().length+"|"+(ds.length?ds[ds.length-1].lbl:"")}
+async function aiRun(force){const k=localStorage.getItem(AIK);if(!k||aiBusy)return;const sig=aiSig();if(!force&&S.ai&&S.ai.sig===sig)return;
+  const ds=gifList();if(!ds.length&&!aiData())return;aiBusy=true;$("aiStat").textContent="analyzing…";
+  const content=[{type:"text",text:"You are a supportive, honest fitness coach reviewing a 75 Hard participant. Data (lb):\n"+aiData()+"\n\n"+(ds.length?"Images: first is "+ds[0].lbl+(ds.length>1?", second is the latest ("+ds[ds.length-1].lbl+")":"")+".":"No photos yet.")+"\nWrite a short progress summary (5-7 plain sentences, no headings): weight trend with numbers, body scan changes if any, what visibly differs between the photos (only what is actually visible; note lighting/distance differences; never estimate body fat % from photos), training load, and one practical tip. No medical advice."}];
+  ds.length&&content.push({type:"image_url",image_url:{url:ds[0].photo}});ds.length>1&&content.push({type:"image_url",image_url:{url:ds[ds.length-1].photo}});
+  try{const r=await fetch("https://api.x.ai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+k},
+      body:JSON.stringify({model:localStorage.getItem("75hard_xai_model")||"grok-4",messages:[{role:"user",content}]})});
+    const j=await r.json();if(!r.ok)throw new Error((j.error&&(j.error.message||j.error))||j.code||r.status);
+    const t=j.choices[0].message.content;S.ai={text:typeof t==="string"?t.trim():JSON.stringify(t),date:todayISO(),sig};save();$("aiStat").textContent=""}
+  catch(e){$("aiStat").textContent="AI error: "+String(e.message||e).slice(0,80)}aiBusy=false;aiShow()}
+$("aiRun").onclick=()=>aiRun(true);
+aiShow();setInterval(()=>aiRun(false),5000);setTimeout(()=>aiRun(false),1500);
+$("menuBtn").onclick=()=>{$("mKey").textContent=localStorage.getItem(AIK)?"🤖 Change / remove Grok API key":"🤖 Add Grok API key for AI summary";$("menuModal").classList.remove("hide")};
+$("mKey").onclick=()=>{const v=prompt("Paste your xAI (Grok) API key. Leave empty to remove it. It is stored only on this phone.",localStorage.getItem(AIK)||"");
+  if(v===null)return;if(v.trim()){localStorage.setItem(AIK,v.trim());S.ai&&(S.ai.sig="");}else localStorage.removeItem(AIK);$("menuModal").classList.add("hide");aiShow();aiRun(true)};
 $("mExport").onclick=async()=>{const blob=new Blob([JSON.stringify(S)],{type:"application/json"}),f=new File([blob],"75hard-backup-"+todayISO()+".json",{type:"application/json"});
   if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]});return}catch(e){}}
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=f.name;a.click()};
