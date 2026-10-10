@@ -178,7 +178,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261010d";
+const APPV="v20261010e";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -202,6 +202,7 @@ const TASKS=[
  {id:"w1",t:"Workout 1",s:"45 min minimum",kind:"workout"},
  {id:"w2",t:"Workout 2",s:"45 min minimum, outside",kind:"workout"},
  {id:"diet",t:"Diet",kind:"note",ph:"no cheats, no alcohol"},
+ {id:"read",t:"Read 10 pages",kind:"pages"},
  {id:"water",t:"Water",s:"5 bottles = 1 gallon",kind:"water"},
 
  {id:"noenergy",t:"No energy drinks",kind:"check"},
@@ -261,6 +262,7 @@ function taskHTML(x,d,locked){
   if(x.kind==="note")extra=`<input class="inp" placeholder="${x.ph}" data-f="${x.id}" value="${esc(d[x.id])}" ${dis}>`;
   if(x.kind==="water"){const w=d.water||0;extra=`<div class="tally"><span class="bottles">${[0,1,2,3,4].map(i=>`<i class="${i<w?"on":""}"></i>`).join("")}</span><b>${w}/5</b><button class="plus" data-w="1" ${dis}>+1 bottle</button><button data-w="-1" ${dis} title="Undo">−</button></div>`}
   if(x.kind==="weight")extra=`<input class="inp w" type="number" step="0.1" inputmode="decimal" placeholder="lbs" data-f="weight" value="${esc(d.weight)}" ${dis}>`;
+  if(x.kind==="pages"){const n=(+d.readE&&+d.readS)?(d.readE-d.readS+1):0;extra=`<div class="inrow"><input class="inp" type="number" inputmode="numeric" placeholder="from" data-f="readS" value="${esc(d.readS)}" style="width:58px;flex:none;text-align:center"><input class="inp" type="number" inputmode="numeric" placeholder="to" data-f="readE" value="${esc(d.readE)}" style="width:58px;flex:none;text-align:center"><span class="hist" style="min-width:34px">${n>0?n+" pg":""}</span></div>`}
   if(x.kind==="photo"){const ph=S.photos[viewDay||curDay()];extra=`<div class="ph">${ph?`<img src="${ph}" data-view="1">`:""}<label class="ghost" for="photoIn">📷 ${ph?"Replace":"Upload"}</label></div>`}
   return `<div class="task${done?" done":""}"><div class="box" data-t="${x.id}"></div><div class="lbl"><span>${x.t}</span>${x.s?`<small>${x.s}</small>`:""}${extra}</div></div>`;
 }
@@ -350,6 +352,7 @@ $("checklist").addEventListener("change",e=>{
   d[f]=e.target.type==="number"?(e.target.value===""?"":parseFloat(e.target.value)):e.target.value;
   if(f==="weight"&&d.weight)d.tasks.weight=1;
   if((f==="w1min"||f==="w2min")&&d[f]>=45)d.tasks[f.slice(0,2)]=1;
+  if((f==="readS"||f==="readE")&&+d.readS&&+d.readE&&d.readE-d.readS+1>=10)d.tasks.read=1;
   save();render();
 });
 let AL=null;
