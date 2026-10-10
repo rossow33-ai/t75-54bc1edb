@@ -161,8 +161,14 @@ button.main{padding:13px;margin-top:0}
   <label class="hist"><input type="checkbox" id="alg" checked> show Day 1 ghost</label>
   <div class="row" style="margin-top:8px"><button class="ghost" id="alCancel">Cancel</button><button class="main" style="width:auto;padding:10px 20px" id="alSave">Save photo</button></div>
 </div></div>
+<div class="modal hide" id="shotModal"><div class="card" style="max-height:85vh;overflow:auto">
+  <div class="row"><strong>From your screenshot</strong><button class="ghost" id="shotX">Cancel</button></div>
+  <div id="shotBody" class="hist" style="margin-top:8px"></div>
+  <button class="main" id="shotSave" style="margin-top:10px">Save</button>
+</div></div>
 <div id="menuDim" onclick="menuClose()" style="position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .25s;z-index:30"></div>
 <nav id="menuModal" style="position:fixed;top:0;right:0;bottom:0;width:62%;max-width:320px;background:#16294f;transform:translateX(100%);transition:transform .28s ease;z-index:31;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top) + 64px) 22px calc(env(safe-area-inset-bottom) + 24px)">
+  <label class="mi">📷 Import from screenshot<input type="file" accept="image/*" multiple id="mShot" class="hide"></label>
   <button class="mi" id="mGif">🎞️ Export progress GIF</button>
   <button class="mi" id="mExport">⬇️ Save a backup file</button>
   <label class="mi">⬆️ Restore from backup<input type="file" accept=".json,application/json" id="mImport" class="hide"></label>
@@ -176,7 +182,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261010j";
+const APPV="v20261010k";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -391,6 +397,40 @@ document.querySelectorAll("#gifSpd button").forEach(b=>b.onclick=()=>setSp(+b.da
 $("menuBtn").onclick=()=>document.body.classList.add("menu-open");
 window.menuClose=()=>document.body.classList.remove("menu-open");
 $("mExport").addEventListener("click",menuClose);$("mImport").addEventListener("change",menuClose);
+
+let OCRW=null;const loadOCR=()=>new Promise((r,j)=>{if(window.Tesseract)return r();const sc=document.createElement("script");sc.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";sc.onload=r;sc.onerror=()=>j(new Error("couldn't load the text reader (are you online?)"));document.head.appendChild(sc)});
+const num=v=>v==null?null:parseFloat(String(v).replace(/[ ,]/g,""));
+function parseShot(t){const L=t.split(/\n/).map(x=>x.trim()).filter(Boolean),f=(re)=>{const m=t.match(re);return m?m[1]:null};
+  if(/BMR|Muscle Mass|Body Composition|Visceral/i.test(t)){
+    return {kind:"scan",weight:num(f(/(\d{2,3}\.\d)\s*[l1I]b/i)),bf:num(f(/Fat Mass\s*(\d{1,2}\.\d)\s*%/i))||num(f(/Body Fat\s*[^\d\n]*(\d{1,2}\.\d)\s*%/i)),
+      muscle:num(f(/Muscle Mass\s*(\d{2,3}\.\d)/i)),visc:num(f(/Visceral Fat[^\d\n]*(\d{1,2})\s*$/im)),bmr:num(f(/BMR\s*([\d ]{3,6})\s*kcal/i)),age:num(f(/Metabolic Age\s*(\d{2})/i)),bmi:num(f(/BMI[^\d\n]*(\d{2}\.\d)/i))}}
+  let dur=null,di=-1;const mt=t.match(/(?:Moving|Elapsed)\s*Time[^\n]*\n\s*(\d{1,2}:\d{2}(?::\d{2})?)/i);
+  if(mt)dur=mt[1];else{di=L.findIndex(x=>/^\d{1,2}:\d{2}:\d{2}$/.test(x));if(di>=0)dur=L[di]}
+  if(!dur)return null;const p=dur.split(":").map(Number),min=Math.round(p.length===3?p[0]*60+p[1]+p[2]/60:p[0]+p[1]/60);
+  let title=L.find(x=>/\b(ride|run|hike|walk|swim|ski|workout|body|legs|chest|back|push|pull|yoga|row)\b/i.test(x)&&x.length<40)||(di>0?L[di-1]:"");
+  const ex=[];const dist=f(/(\d+\.?\d*)\s*mi\b/i),el=f(/([\d,]+)\s*ft\b/i),vol=f(/([\d,]{3,})\s*LB\b/),cal=f(/([\d,]{2,})\s*(?:KCAL|Cal)\b/i);
+  dist&&ex.push(dist+" mi");el&&ex.push(el+" ft");vol&&ex.push(vol+" lb vol");cal&&ex.push(cal+" kcal");
+  return {kind:"workout",min,note:[title,...ex].filter(Boolean).join(", "),outdoor:/ride|run|hike|walk|bike|trail|ski|outdoor|paddle/i.test(t)}}
+let SHOT=[];
+$("mShot").onchange=async e=>{const fs=[...e.target.files];e.target.value="";if(!fs.length)return;menuClose();
+  $("shotBody").textContent="Reading "+fs.length+" screenshot"+(fs.length>1?"s":"")+"… (first time takes ~20s)";$("shotSave").disabled=true;$("shotModal").classList.remove("hide");
+  try{await loadOCR();OCRW=OCRW||await Tesseract.createWorker("eng");SHOT=[];
+    for(const f of fs){const r=await OCRW.recognize(f);const p=parseShot(r.data.text);if(p)SHOT.push(p)}
+  }catch(err){$("shotBody").textContent="Sorry, "+err.message;return}
+  if(!SHOT.length){$("shotBody").textContent="Couldn't find any workout time or scale numbers in that screenshot.";return}
+  const v=viewDay||curDay();let html=`<label>Save to Day <input class="inp" id="shotDay" type="number" value="${v}" style="width:70px"></label>`;
+  SHOT.forEach((p,i)=>{if(p.kind==="scan"){html+=`<div style="margin-top:12px;color:var(--txt)"><b>Body scan</b></div>`+[["weight","AM weight (lb)"],["bf","Body fat %"],["muscle","Muscle (lb)"],["visc","Visceral"],["bmr","BMR"],["age","Metabolic age"]].map(([k,l])=>`<label style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">${l}<input class="inp" style="width:100px" type="number" step="0.1" data-s="${i}" data-k="${k}" value="${p[k]??""}"></label>`).join("")}
+    else{const d=D(v),slot=p.outdoor&&!d.w2min?"w2":(!d.w1min?"w1":(!d.w2min?"w2":"w1"));p.slot=slot;
+      html+=`<div style="margin-top:12px;color:var(--txt)"><b>Workout</b></div><label style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">Slot<select class="inp" style="width:140px" data-s="${i}" data-k="slot"><option value="w1"${slot==="w1"?" selected":""}>Workout 1</option><option value="w2"${slot==="w2"?" selected":""}>Workout 2 (outdoor)</option></select></label>
+      <label style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">Minutes<input class="inp" style="width:100px" type="number" data-s="${i}" data-k="min" value="${p.min}"></label>
+      <label style="display:block;margin-top:6px">Note<input class="inp" data-s="${i}" data-k="note" value="${esc(p.note)}"></label>`}});
+  $("shotBody").innerHTML=html+`<p class="hist" style="margin-top:10px">Check the numbers, then Save.</p>`;$("shotSave").disabled=false};
+$("shotX").onclick=()=>$("shotModal").classList.add("hide");
+$("shotSave").onclick=()=>{document.querySelectorAll("#shotBody [data-s]").forEach(el=>{const p=SHOT[+el.dataset.s],k=el.dataset.k;p[k]=(el.type==="number")?(el.value===""?null:parseFloat(el.value)):el.value});
+  const day=Math.max(1,Math.min(75,parseInt($("shotDay").value)||curDay())),d=D(day);
+  SHOT.forEach(p=>{if(p.kind==="scan"){if(p.weight){d.weight=p.weight;d.tasks.weight=1}const c={};["bf","muscle","visc","bmr","age"].forEach(k=>{if(p[k]!=null&&!isNaN(p[k]))c[k]=p[k]});if(Object.keys(c).length)d.comp=Object.assign(d.comp||{},c)}
+    else{d[p.slot+"min"]=p.min;d[p.slot+"note"]=p.note;if(p.min>=45)d.tasks[p.slot]=1}});
+  save();$("shotModal").classList.add("hide");viewDay=day===curDay()?null:day;render()};
 $("mGif").onclick=async()=>{const ds=gifList();if(!ds.length){alert("Add some progress photos first.");return}
   const btn=$("mGif");btn.textContent="Building GIF…";btn.disabled=true;
   try{const {GIFEncoder,quantize,applyPalette}=await import("./gifenc.js");const W=360,H=540,c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
