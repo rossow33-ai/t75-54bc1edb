@@ -188,7 +188,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261011d";
+const APPV="v20261011e";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -386,10 +386,9 @@ const GUIDE={top:.07,waist:.93};
 function drawGuide(x){const T=GUIDE.top*600,B=GUIDE.waist*600,h=B-T,cx=200,u=h/100;x.save();
   x.strokeStyle="rgba(255,255,255,.9)";x.lineWidth=2.5;x.setLineDash([7,5]);x.shadowColor="rgba(0,0,0,.6)";x.shadowBlur=4;
   // head
-  x.beginPath();x.ellipse(cx,T+15.5*u,10.5*u,15.5*u,0,0,7);x.stroke();
+  
   // body outline (one side, mirrored)
-  const side=k=>{x.beginPath();x.moveTo(cx+k*5.5*u,T+29.5*u);
-    x.bezierCurveTo(cx+k*6*u,T+32*u,cx+k*7*u,T+33*u,cx+k*11*u,T+34*u);           // neck to traps
+  const side=k=>{x.beginPath();x.moveTo(cx+k*11*u,T+34*u);           // neck to traps
     x.bezierCurveTo(cx+k*17*u,T+35*u,cx+k*24*u,T+35*u,cx+k*28*u,T+38*u);           // trap slope to shoulder
     x.bezierCurveTo(cx+k*33*u,T+40*u,cx+k*34*u,T+48*u,cx+k*33.5*u,T+56*u);         // deltoid cap
     x.bezierCurveTo(cx+k*34*u,T+70*u,cx+k*33*u,T+85*u,cx+k*31*u,B+2*u);           // outer arm
