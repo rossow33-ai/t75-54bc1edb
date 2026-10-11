@@ -78,6 +78,7 @@ button.main{padding:13px;margin-top:0}
 .mh{font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9fb0d0;margin:18px 0 2px;border-bottom:1px solid #ffffff22;padding-bottom:6px}.mh:first-child{margin-top:0}
 .mi{display:block;width:100%;text-align:left;background:none;border:0;color:#fff;font-size:17px;padding:13px 0;cursor:pointer}
 .menu-open #menuModal{transform:none!important}.menu-open #menuDim{opacity:1!important;pointer-events:auto!important}
+@keyframes kp{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}@keyframes kf{from{opacity:0}}
 </style>
 </head>
 <body>
@@ -186,7 +187,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261010l";
+const APPV="v20261010m";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -273,6 +274,11 @@ function taskHTML(x,d,locked){
   return `<div class="task${done?" done":""}"><div class="box" data-t="${x.id}"></div><div class="lbl"><span>${x.t}</span>${x.s?`<small>${x.s}</small>`:""}${extra}</div></div>`;
 }
 
+function kudos(n){const E=["🔥","💪","🏆","🙌","⚡","🥇","🚀","👏","🦾","🎉"],M=["Day "+n+" crushed!","Another one in the books.","Discipline looks good on you.","That's how it's done.","Locked in. See you tomorrow.","Nothing soft about that.","Stacking wins."];
+  const e=E[Math.floor(Math.random()*E.length)],k=document.createElement("div");
+  k.style.cssText="position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(0,0,0,.6);animation:kf .25s";
+  k.innerHTML=`<div style="background:var(--card);border:1px solid var(--line);border-radius:22px;padding:28px 24px;text-align:center;max-width:300px;animation:kp .45s cubic-bezier(.2,1.6,.4,1)"><div style="font-size:84px;line-height:1">${e}</div><div style="font-size:24px;font-weight:800;margin-top:12px">Day ${n} complete!</div><div class="hist" style="font-size:15px;margin-top:6px">${n>=75?"75 HARD DONE. Legend. 🏆":M[Math.floor(Math.random()*M.length)]+" "+(75-n)+" to go."}</div><button class="main" style="margin-top:18px">Let's go</button></div>`;
+  k.onclick=()=>k.remove();document.body.appendChild(k);navigator.vibrate&&navigator.vibrate([60,40,90])}
 function render(){
   $("setup").classList.toggle("hide",!!S.start);$("app").classList.toggle("hide",!S.start);
   if(!S.start){$("sub").textContent="";$("dayNum").textContent="";return}
@@ -286,6 +292,7 @@ function render(){
   $("clTitle").textContent=isToday?"Today":`Day ${v}`;
   $("checklist").innerHTML=TASKS.map(x=>taskHTML(x,d,locked)).join("");
   const all=TASKS.every(x=>d.tasks[x.id]);
+  if(isToday&&all&&!doneToday){S.completed.push(n);save();setTimeout(()=>kudos(n),150);return render()}
   const cb=$("completeBtn");cb.classList.toggle("hide",!isToday);
   cb.disabled=!all||doneToday;
   cb.textContent=doneToday?(S.completed.length>=75?"🏆 75 HARD COMPLETE":`✓ Day ${n} done. See you tomorrow`):all?`Complete Day ${n}`:`Finish all ${TASKS.length} tasks`;
