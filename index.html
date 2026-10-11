@@ -189,7 +189,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261011g";
+const APPV="v20261011h";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -307,6 +307,7 @@ function render(){
     {const dd=S.days[i],fr=dd&&dd.tasks?TASKS.filter(x=>dd.tasks[x.id]).length/TASKS.length:0;
       if(!S.completed.includes(i)&&i<=n&&fr>0){const p=Math.round(fr*100);c.style.background=`linear-gradient(to top,rgba(46,204,113,.75) ${p}%,var(--line) ${p}%)`;if(fr>=.5)c.style.color="#000"}
       const pf=(window._fr=window._fr||{})[i];if(pf!==undefined&&fr>pf){c.style.position="relative";c.style.overflow="visible";const f=document.createElement("span");f.textContent="🔥";f.className="fire";c.appendChild(f)}
+      {const wt=(dd&&dd.water)||0,pw=(window._wt=window._wt||{})[i];if(pw!==undefined&&wt>pw){c.style.position="relative";c.style.overflow="visible";const f=document.createElement("span");f.textContent="💧";f.className="fire";f.style.left="72%";c.appendChild(f)}window._wt[i]=wt}
       window._fr[i]=S.completed.includes(i)?1:fr}
     if(i<=n){c.style.cursor="pointer";c.onclick=()=>{viewDay=i===n?null:i;render();window.scrollTo({top:0,behavior:"smooth"})}}
     g.appendChild(c)}
