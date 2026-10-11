@@ -161,7 +161,7 @@ button.main{padding:13px;margin-top:0}
   <div class="row"><strong>Line yourself up</strong><span class="hist">drag to move</span></div>
   <canvas id="alc" width="400" height="600" style="width:100%;border-radius:10px;background:#000;touch-action:none;margin-top:8px"></canvas>
   <div class="row" style="margin-top:6px"><span class="hist">zoom</span><input type="range" id="alz" min="0.3" max="3" step="0.01" value="1" style="flex:1"></div>
-  <label class="hist"><input type="checkbox" id="alg" checked> show Day 1 ghost</label>
+  <label class="hist"><input type="checkbox" id="alg" checked> show outline</label><div class="hist" id="alStat" style="margin-top:4px"></div>
   <div class="row" style="margin-top:8px"><button class="ghost" id="alCancel">Cancel</button><button class="main" style="width:auto;padding:10px 20px" id="alSave">Save photo</button></div>
 </div></div>
 <div class="modal hide" id="shotModal"><div class="card" style="max-height:85vh;overflow:auto">
@@ -188,7 +188,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261011b";
+const APPV="v20261011c";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -373,7 +373,21 @@ $("checklist").addEventListener("change",e=>{
   if((f==="readS"||f==="readE")&&+d.readS&&+d.readE&&d.readE-d.readS+1>=10)d.tasks.read=1;
   save();render();
 });
-let AL=null;
+let AL=null,POSE=null;
+async function autoCrop(img){
+  if(!POSE){const {PoseLandmarker,FilesetResolver}=await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs");
+    const fs=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    POSE=await PoseLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",delegate:"CPU"},runningMode:"IMAGE",numPoses:1})}
+  const bm=await createImageBitmap(img),r=POSE.detect(bm),L=r.landmarks&&r.landmarks[0];if(!L)return false;
+  const W=img.width,H=img.height,P=i=>[L[i].x*W,L[i].y*H],no=P(0),sh=[(P(11)[0]+P(12)[0])/2,(P(11)[1]+P(12)[1])/2],hp=[(P(23)[0]+P(24)[0])/2,(P(23)[1]+P(24)[1])/2];
+  const top=no[1]-1.05*(sh[1]-no[1]),waist=hp[1]-.19*(hp[1]-sh[1]);if(!(waist>top))return false;
+  AL.s=(GUIDE.waist-GUIDE.top)*600/(waist-top);AL.x=200-sh[0]*AL.s;AL.y=GUIDE.top*600-top*AL.s;return true}
+const GUIDE={top:.07,waist:.93};
+function drawGuide(x){const T=GUIDE.top*600,B=GUIDE.waist*600,h=B-T,cx=200;x.save();x.strokeStyle="rgba(255,255,255,.85)";x.lineWidth=2;x.setLineDash([8,6]);
+  const hr=h*.11,hy=T+hr*1.15,shY=T+h*.33,shW=h*.36,wW=h*.22;
+  x.beginPath();x.ellipse(cx,hy,hr*.82,hr*1.12,0,0,7);x.stroke();
+  x.beginPath();x.moveTo(cx-hr*.4,hy+hr*1.1);x.lineTo(cx-hr*.45,shY-h*.05);x.lineTo(cx-shW/2,shY);x.lineTo(cx-shW/2-h*.02,shY+h*.35);x.lineTo(cx-wW/2,B);x.lineTo(cx+wW/2,B);x.lineTo(cx+shW/2+h*.02,shY+h*.35);x.lineTo(cx+shW/2,shY);x.lineTo(cx+hr*.45,shY-h*.05);x.lineTo(cx+hr*.4,hy+hr*1.1);x.stroke();
+  x.strokeStyle="rgba(255,77,46,.9)";x.setLineDash([]);[[T,"top of head"],[B,"waist"]].forEach(([y,l])=>{x.beginPath();x.moveTo(0,y);x.lineTo(400,y);x.stroke();x.fillStyle="rgba(255,77,46,.95)";x.font="bold 14px system-ui";x.fillText(l,8,y-5)});x.restore()}
 function matchLight(){const ds=gifDays().filter(d=>d!==AL.v);if(!ds.length)return;const ref=new Image();ref.src=S.photos[ds[0]];if(!ref.complete)return;
   const c=$("alc"),x=c.getContext("2d"),t=document.createElement("canvas");t.width=400;t.height=600;const tx=t.getContext("2d");tx.drawImage(ref,0,0,400,600);
   const st=d=>{const m=[0,0,0],q=[0,0,0];let n=0;for(let y=60;y<380;y+=2)for(let X=120;X<280;X+=2){const i=(y*400+X)*4;for(let k=0;k<3;k++){m[k]+=d[i+k];q[k]+=d[i+k]*d[i+k]}n++}
@@ -383,15 +397,17 @@ function matchLight(){const ds=gifDays().filter(d=>d!==AL.v);if(!ds.length)retur
   x.putImageData(img,0,0)}
 $("photoIn").onchange=e=>{
   const f=e.target.files[0];if(!f)return;const img=new Image(),v=viewDay||curDay();
-  img.onload=()=>{const sc=Math.max(400/img.width,600/img.height);AL={img,v,s:sc,x:(400-img.width*sc)/2,y:(600-img.height*sc)/2,base:sc};
-    $("alz").value=1;const ds=gifDays().filter(d=>d!==v);AL.ghost=null;
-    if(ds.length){const g=new Image();g.onload=()=>{AL.ghost=g;alDraw()};g.src=S.photos[ds[0]]}
-    $("alignModal").classList.remove("hide");alDraw()};
+  img.onload=async()=>{const sc=Math.max(400/img.width,600/img.height);AL={img,v,s:sc,x:(400-img.width*sc)/2,y:(600-img.height*sc)/2,base:sc};
+    $("alz").value=1;AL.ghost=null;$("alStat").textContent="Finding you in the photo…";
+    $("alignModal").classList.remove("hide");alDraw();
+    let ok=false;try{ok=await autoCrop(img)}catch(e){}
+    if(!ok&&S.cropT){const t=S.cropT;AL.s=t.sr*400/img.width;AL.x=t.xr*400;AL.y=t.yr*600}
+    AL.base=AL.s;$("alStat").textContent=ok?"Auto-framed head to waist. Drag or zoom to adjust.":(S.cropT?"Used your last framing. Line yourself up with the outline.":"Line yourself up with the outline.");alDraw()};
   img.src=URL.createObjectURL(f);e.target.value="";
 };
 function alDraw(ghost=true){const c=$("alc"),x=c.getContext("2d");x.fillStyle="#000";x.fillRect(0,0,400,600);
   x.drawImage(AL.img,AL.x,AL.y,AL.img.width*AL.s,AL.img.height*AL.s);
-  if(ghost&&AL.ghost&&$("alg").checked){x.globalAlpha=.35;x.drawImage(AL.ghost,0,0,400,600);x.globalAlpha=1}}
+  if(ghost&&$("alg").checked)drawGuide(x)}
 (()=>{const c=$("alc");let p=null;
   c.onpointerdown=e=>{p=[e.clientX,e.clientY];c.setPointerCapture(e.pointerId)};
   c.onpointermove=e=>{if(!p||!AL)return;const k=400/c.clientWidth;AL.x+=(e.clientX-p[0])*k;AL.y+=(e.clientY-p[1])*k;p=[e.clientX,e.clientY];alDraw()};
@@ -399,7 +415,7 @@ function alDraw(ghost=true){const c=$("alc"),x=c.getContext("2d");x.fillStyle="#
   $("alz").oninput=()=>{const ns=AL.base*+$("alz").value,cx=200,cy=300;AL.x=cx-(cx-AL.x)*ns/AL.s;AL.y=cy-(cy-AL.y)*ns/AL.s;AL.s=ns;alDraw()};
   $("alg").onchange=()=>alDraw();
   $("alCancel").onclick=()=>{$("alignModal").classList.add("hide");AL=null};
-  $("alSave").onclick=()=>{alDraw(false);matchLight();const v=AL.v;S.photos[v]=$("alc").toDataURL("image/jpeg",.7);D(v).tasks.photo=1;
+  $("alSave").onclick=()=>{S.cropT={sr:AL.s*AL.img.width/400,xr:AL.x/400,yr:AL.y/600};alDraw(false);matchLight();const v=AL.v;S.photos[v]=$("alc").toDataURL("image/jpeg",.7);D(v).tasks.photo=1;
     try{save()}catch(err){delete S.photos[v];save();alert("Phone storage for this app is full, photo not kept.")}
     $("alignModal").classList.add("hide");AL=null;render()};
 })();
