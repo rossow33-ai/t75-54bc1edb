@@ -187,7 +187,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261010m";
+const APPV="v20261011a";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -277,8 +277,8 @@ function taskHTML(x,d,locked){
 function kudos(n){const E=["🔥","💪","🏆","🙌","⚡","🥇","🚀","👏","🦾","🎉"],M=["Day "+n+" crushed!","Another one in the books.","Discipline looks good on you.","That's how it's done.","Locked in. See you tomorrow.","Nothing soft about that.","Stacking wins."];
   const e=E[Math.floor(Math.random()*E.length)],k=document.createElement("div");
   k.style.cssText="position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(0,0,0,.6);animation:kf .25s";
-  k.innerHTML=`<div style="background:var(--card);border:1px solid var(--line);border-radius:22px;padding:28px 24px;text-align:center;max-width:300px;animation:kp .45s cubic-bezier(.2,1.6,.4,1)"><div style="font-size:84px;line-height:1">${e}</div><div style="font-size:24px;font-weight:800;margin-top:12px">Day ${n} complete!</div><div class="hist" style="font-size:15px;margin-top:6px">${n>=75?"75 HARD DONE. Legend. 🏆":M[Math.floor(Math.random()*M.length)]+" "+(75-n)+" to go."}</div><button class="main" style="margin-top:18px">Let's go</button></div>`;
-  k.onclick=()=>k.remove();document.body.appendChild(k);navigator.vibrate&&navigator.vibrate([60,40,90])}
+  k.innerHTML=`<div style="background:var(--card);border:1px solid var(--line);border-radius:22px;padding:28px 24px;text-align:center;max-width:300px;animation:kp .45s cubic-bezier(.2,1.6,.4,1)"><div style="font-size:84px;line-height:1">${e}</div><div style="font-size:24px;font-weight:800;margin-top:12px">Day ${n} complete!</div><div class="hist" style="font-size:15px;margin-top:6px">${n>=75?"75 HARD DONE. Legend. 🏆":M[Math.floor(Math.random()*M.length)]+" "+(75-n)+" to go."}</div><button class="alt" id="kBk" style="margin-top:18px">☁️ Back up now</button><button class="ghost" id="kGo" style="width:100%;margin-top:8px">Let's go</button></div>`;
+  k.onclick=e=>{if(e.target.id==="kBk"){$("mExport").click()}k.remove()};document.body.appendChild(k);navigator.vibrate&&navigator.vibrate([60,40,90])}
 function render(){
   $("setup").classList.toggle("hide",!!S.start);$("app").classList.toggle("hide",!S.start);
   if(!S.start){$("sub").textContent="";$("dayNum").textContent="";return}
