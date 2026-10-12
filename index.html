@@ -79,6 +79,10 @@ button.main{padding:13px;margin-top:0}
 .mi{display:block;width:100%;text-align:left;background:none;border:0;color:#fff;font-size:17px;padding:13px 0;cursor:pointer}
 .menu-open #menuModal{transform:none!important}.menu-open #menuDim{opacity:1!important;pointer-events:auto!important}
 @keyframes kp{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}@keyframes kf{from{opacity:0}}
+.drop{position:absolute;left:50%;top:0;font-size:18px;pointer-events:none;z-index:3;animation:drop .9s cubic-bezier(.5,0,1,1) forwards}
+@keyframes drop{0%{transform:translate(-50%,-180%);opacity:0}15%{opacity:1}60%{transform:translate(-50%,20%) scale(1)}72%{transform:translate(-50%,35%) scale(1.4,.5);opacity:1}100%{transform:translate(-50%,35%) scale(1.8,.2);opacity:0}}
+.spl{position:absolute;left:50%;top:65%;width:5px;height:5px;border-radius:50%;background:#5ab8ff;pointer-events:none;z-index:3;opacity:0;animation:spl .6s ease-out .6s forwards}
+@keyframes spl{0%{transform:translate(-50%,0);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),var(--dy)) scale(.4);opacity:0}}
 .fire{position:absolute;left:50%;bottom:10%;font-size:22px;pointer-events:none;animation:fire 2.2s ease-out forwards;z-index:3}@keyframes fire{0%{transform:translate(-50%,0) scale(.4);opacity:0}15%{opacity:1;transform:translate(-50%,-20%) scale(1.3)}50%{transform:translate(-50%,-60%) scale(1.1) rotate(-8deg)}75%{transform:translate(-50%,-90%) scale(1.2) rotate(8deg);opacity:1}100%{transform:translate(-50%,-140%) scale(.6);opacity:0}}
 </style>
 </head>
@@ -194,7 +198,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261011j";
+const APPV="v20261012a";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -312,7 +316,7 @@ function render(){
     {const dd=S.days[i],fr=dd&&dd.tasks?TASKS.filter(x=>dd.tasks[x.id]).length/TASKS.length:0;
       if(!S.completed.includes(i)&&i<=n&&fr>0){const p=Math.round(fr*100);c.style.background=`linear-gradient(to top,rgba(46,204,113,.75) ${p}%,var(--line) ${p}%)`;if(fr>=.5)c.style.color="#000"}
       const pf=(window._fr=window._fr||{})[i];if(pf!==undefined&&fr>pf){c.style.position="relative";c.style.overflow="visible";const f=document.createElement("span");f.textContent="🔥";f.className="fire";c.appendChild(f)}
-      {const wt=(dd&&dd.water)||0,pw=(window._wt=window._wt||{})[i];if(pw!==undefined&&wt>pw){c.style.position="relative";c.style.overflow="visible";const f=document.createElement("span");f.textContent="💧";f.className="fire";f.style.left="72%";c.appendChild(f)}window._wt[i]=wt}
+      {const wt=(dd&&dd.water)||0,pw=(window._wt=window._wt||{})[i];if(pw!==undefined&&wt>pw){c.style.position="relative";c.style.overflow="visible";const f=document.createElement("span");f.textContent="💧";f.className="drop";c.appendChild(f);[[-14,-10],[-8,-16],[8,-16],[14,-10]].forEach(([dx,dy])=>{const p=document.createElement("i");p.className="spl";p.style.setProperty("--dx",dx+"px");p.style.setProperty("--dy",dy+"px");c.appendChild(p)})}window._wt[i]=wt}
       window._fr[i]=S.completed.includes(i)?1:fr}
     if(i<=n){c.style.cursor="pointer";c.onclick=()=>{viewDay=i===n?null:i;render();window.scrollTo({top:0,behavior:"smooth"})}}
     g.appendChild(c)}
