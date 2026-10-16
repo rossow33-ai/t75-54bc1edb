@@ -115,8 +115,8 @@ button.main{padding:13px;margin-top:0}
   <button class="main" id="completeBtn"></button>
   <button class="ghost hide" id="repeatBtn" style="width:100%;margin-top:8px">✈️ Crossed dateline? Start next day now</button>
 
-  <section class="card" style="margin-top:14px">
-    <strong>AM weight</strong>
+  <section class="card" id="wCard" style="margin-top:14px;cursor:pointer">
+    <div class="row"><strong>AM weight</strong><span class="hist">tap to save ⬇️</span></div>
     <svg id="chart" viewBox="0 0 300 100" style="width:100%;height:80px;margin-top:6px"></svg>
     <div class="stats" id="wstats"></div>
   </section>
@@ -191,6 +191,12 @@ button.main{padding:13px;margin-top:0}
   <h3 style="margin-top:0">📊 Progress report</h3><div id="repBody"></div>
   <div style="display:flex;gap:8px;margin-top:12px"><button class="plus" id="repShare" style="flex:1">Share</button><button class="ghost" id="repClose" style="flex:1">Close</button></div>
 </div></div>
+<div class="modal hide" id="wgModal" style="z-index:40"><div class="card">
+  <h3 style="margin-top:0">Save weight graphic</h3>
+  <button class="plus" id="wgT" style="width:100%;padding:12px">🫥 Transparent sticker</button>
+  <button class="plus" id="wgB" style="width:100%;padding:12px;margin-top:8px">🖼️ With background</button>
+  <button class="ghost" id="wgX" style="width:100%;margin-top:8px">Cancel</button>
+</div></div>
 <div class="modal hide" id="missModal"><div class="card">
   <h3 style="margin-top:0">You missed a day</h3>
   <p class="hist" id="missText"></p>
@@ -199,7 +205,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261016b";
+const APPV="v20261016c";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -502,21 +508,29 @@ function buildReport(){const n=curDay(),D=S.days||{};let wo=0,mins=0,w1=0,w2=0,b
 $("mRep").onclick=()=>{const R=buildReport();$("repBody").innerHTML=R.map(([k,v])=>`<div class="row" style="padding:7px 0;border-bottom:1px solid #ffffff14"><span class="hist">${k}</span><b>${esc(String(v))}</b></div>`).join("");$("repModal").classList.remove("hide")};
 $("repClose").onclick=()=>$("repModal").classList.add("hide");
 $("repShare").onclick=async()=>{const t="75 HARD progress\n"+buildReport().map(([k,v])=>k+": "+v).join("\n");try{if(navigator.share)await navigator.share({text:t});else{await navigator.clipboard.writeText(t);$("repShare").textContent="Copied ✓"}}catch(e){}};
-$("mWG").onclick=async()=>{const ws=TL().filter(x=>+x.weight).map(x=>[x.lbl,+x.weight]);if(ws.length<2){alert("Log at least 2 AM weights first.");return}
+async function saveWG(bg){const ws=TL().filter(x=>+x.weight).map(x=>[x.lbl,+x.weight]);if(ws.length<2){alert("Log at least 2 AM weights first.");return}
  const W=1080,H=1080,c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
- x.shadowColor="rgba(0,0,0,.45)";x.shadowBlur=12;x.fillStyle="#fff";x.textAlign="center";
+ if(bg){const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,"#1c1c22");g.addColorStop(1,"#0e0e12");x.fillStyle=g;x.fillRect(0,0,W,H)}
+ x.shadowColor=bg?"transparent":"rgba(0,0,0,.5)";x.shadowBlur=12;x.fillStyle="#fff";x.textAlign="center";
  const f=ws[0][1],l=ws[ws.length-1][1],d=l-f,vals=ws.map(v=>v[1]),mn=Math.min(...vals),mx=Math.max(...vals),rg=Math.max(mx-mn,1);
- x.font="800 64px system-ui,-apple-system,sans-serif";x.fillText("75 HARD",W/2,170);
- x.font="600 40px system-ui,-apple-system,sans-serif";x.fillText(ws[ws.length-1][0]+" · AM weight",W/2,230);
- const L=120,R=W-120,T=320,B=700,px=i=>L+(R-L)*i/(ws.length-1),py=v=>B-(B-T)*(v-mn)/rg;
- x.strokeStyle="#ff4d2e";x.lineWidth=14;x.lineJoin=x.lineCap="round";x.beginPath();ws.forEach((v,i)=>i?x.lineTo(px(i),py(v[1])):x.moveTo(px(i),py(v[1])));x.stroke();
- x.fillStyle="#fff";[0,ws.length-1].forEach(i=>{x.beginPath();x.arc(px(i),py(ws[i][1]),16,0,7);x.fill()});
- const col=(cx,lab,val)=>{x.font="600 34px system-ui,-apple-system,sans-serif";x.fillText(lab,cx,820);x.font="800 76px system-ui,-apple-system,sans-serif";x.fillText(val,cx,905)};
- col(W/6,"Start",f.toFixed(1));col(W/2,"Change",(d>0?"+":"")+d.toFixed(1));col(5*W/6,"Now",l.toFixed(1));
- x.font="600 32px system-ui,-apple-system,sans-serif";x.fillText("lbs",W/2,965);
+ const F=(w,z)=>x.font=w+" "+z+"px system-ui,-apple-system,sans-serif";
+ F(800,64);x.fillText("75",W/2-95,150);x.fillStyle="#ff4d2e";x.fillText("HARD",W/2+70,150);x.fillStyle="#fff";
+ F(600,38);x.fillText(ws[ws.length-1][0]+" · AM weight",W/2,210);
+ const L=90,R=W-90,T=320,B=680,px=i=>L+(R-L)*i/(ws.length-1),py=v=>B-(B-T)*(v-mn)/rg;
+ x.strokeStyle="#ff4d2e";x.lineWidth=8;x.lineJoin=x.lineCap="round";x.beginPath();ws.forEach((v,i)=>i?x.lineTo(px(i),py(v[1])):x.moveTo(px(i),py(v[1])));x.stroke();
+ const fs=ws.length>20?18:ws.length>12?22:28;
+ ws.forEach((v,i)=>{x.fillStyle="#ff4d2e";x.beginPath();x.arc(px(i),py(v[1]),9,0,7);x.fill();x.fillStyle="#fff";F(700,fs);x.fillText(v[1],px(i),py(v[1])-22);
+   x.fillStyle="rgba(255,255,255,.6)";F(600,fs-4);x.fillText(v[0].replace("Day ","D"),px(i),B+50)});
+ x.fillStyle="#fff";
+ const col=(cx,lab,val,cl)=>{F(600,34);x.fillStyle="rgba(255,255,255,.75)";x.fillText(lab,cx,830);F(800,76);x.fillStyle=cl||"#fff";x.fillText(val,cx,915)};
+ col(W/6,"Start",f.toFixed(1));col(W/2,"Change",(d>0?"+":"")+d.toFixed(1),d<0?"#2ecc71":"#ff4d2e");col(5*W/6,"Current",l.toFixed(1));
+ x.fillStyle="rgba(255,255,255,.75)";F(600,30);x.fillText("lbs",W/2,970);
  const blob=await new Promise(r=>c.toBlob(r,"image/png")),file=new File([blob],"75hard-weight.png",{type:"image/png"});
  try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file]});return}}catch(e){if(e.name==="AbortError")return}
- const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=file.name;a.click()};
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=file.name;a.click()}
+const wgOpen=()=>$("wgModal").classList.remove("hide"),wgClose=()=>$("wgModal").classList.add("hide");
+$("mWG").onclick=wgOpen;$("wCard").onclick=wgOpen;$("wgX").onclick=wgClose;
+$("wgT").onclick=()=>{wgClose();saveWG(false)};$("wgB").onclick=()=>{wgClose();saveWG(true)};
 $("mGif").onclick=async()=>{const ds=gifList();if(!ds.length){alert("Add some progress photos first.");return}
   const btn=$("mGif");btn.textContent="Building GIF…";btn.disabled=true;
   try{const {GIFEncoder,quantize,applyPalette}=await import("./gifenc.js");const W=360,H=540,c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
