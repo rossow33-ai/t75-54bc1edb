@@ -200,12 +200,13 @@ button.main{padding:13px;margin-top:0}
 <div class="modal hide" id="missModal"><div class="card">
   <h3 style="margin-top:0">You missed a day</h3>
   <p class="hist" id="missText"></p>
-  <button class="alt" id="datelineBtn">✈️ Crossed dateline, continue</button>
+  <button class="alt" id="forgotBtn">📝 Forgot to log, fill it in</button>
+  <button class="alt" id="datelineBtn" style="margin-top:8px">✈️ Crossed dateline, continue</button>
   <button class="main" id="restartBtn">Restart from Day 1</button>
 </div></div>
 
 <script>
-const APPV="v20261016c";
+const APPV="v20261016d";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -253,12 +254,13 @@ const D=n=>(S.days[n]=S.days[n]||{tasks:{},water:0});
 function checkMissed(){
   if(!S.start)return;
   const n=dayIndex(),k=S.completed.length;
-  if(n>k+1&&k<75){
+  if(n>k+1&&k<75&&viewDay!==S.backfill){
     const missed=n-1-k;
-    $("missText").innerHTML=`Day ${k+1} wasn't marked complete${missed>1?` (${missed} calendar days passed)`:""}.<br><br>If you crossed the international dateline and lost a calendar day, continue and you'll pick up at Day ${k+1} today. Otherwise the rules say back to Day 1.`;
+    $("missText").innerHTML=`Day ${k+1} wasn't marked complete${missed>1?` (${missed} calendar days passed)`:""}.<br><br>If you did everything but forgot to check it off, fill it in now. If you crossed the international dateline and lost a calendar day, continue and you'll pick up at Day ${k+1} today. Otherwise the rules say back to Day 1.`;
     $("missModal").classList.remove("hide");
   }
 }
+function forgotLog(){const k=S.completed.length;S.backfill=k+1;viewDay=k+1;save();$("missModal").classList.add("hide");render();window.scrollTo({top:0,behavior:"smooth"})}
 function datelineSkip(){
   const n=dayIndex(),k=S.completed.length,missed=n-1-k;
   S.start=addDays(S.start,missed);
@@ -310,6 +312,7 @@ function render(){
   $("clTitle").textContent=isToday?"Today":`Day ${v}`;
   $("checklist").innerHTML=TASKS.map(x=>taskHTML(x,d,locked)).join("");
   const all=TASKS.every(x=>d.tasks[x.id]);
+  if(!isToday&&S.backfill===v&&all&&!S.completed.includes(v)){S.completed.push(v);S.completed.sort((a,b)=>a-b);delete S.backfill;S.datelines.push({date:todayISO(),type:`Forgot to log, filled in Day ${v}`});viewDay=null;save();setTimeout(()=>{kudos(v);checkMissed()},150);return render()}
   if(isToday&&all&&!doneToday){S.completed.push(n);save();setTimeout(()=>kudos(n),150);return render()}
   const cb=$("completeBtn");cb.classList.toggle("hide",!isToday);
   cb.disabled=!all||doneToday;
@@ -551,6 +554,7 @@ $("mImport").onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t
   if(!confirm("Replace the data on this phone with this backup?"))return;S=n;save();location.reload()}catch(x){alert("That file isn't a 75 Hard backup.")}})};
 $("backToday").onclick=()=>{viewDay=null;render()};
 $("startBtn").onclick=()=>{const d=Math.max(1,Math.min(75,parseInt($("curDay").value)||1));S.start=addDays(todayISO(),-(d-1));S.completed=[];for(let i=1;i<d;i++)S.completed.push(i);save();render();checkMissed()};
+$("forgotBtn").onclick=forgotLog;
 $("completeBtn").onclick=()=>{const n=curDay();if(!S.completed.includes(n))S.completed.push(n);save();render()};
 $("datelineBtn").onclick=datelineSkip;
 $("restartBtn").onclick=()=>restart("Missed a day");
