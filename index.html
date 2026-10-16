@@ -180,6 +180,7 @@ button.main{padding:13px;margin-top:0}
   <label class="mi">📷 Import from screenshot<input type="file" accept="image/*" multiple id="mShot" class="hide"></label>
   <div class="mh">Share</div>
   <button class="mi" id="mRep">📊 Progress report</button>
+  <button class="mi" id="mWG">⚖️ Export weight graphic</button>
   <button class="mi" id="mGif">🎞️ Export progress GIF</button>
   <div class="mh">Backups</div>
   <button class="mi" id="mExport">⬇️ Save a backup file</button>
@@ -198,7 +199,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261016a";
+const APPV="v20261016b";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -501,6 +502,21 @@ function buildReport(){const n=curDay(),D=S.days||{};let wo=0,mins=0,w1=0,w2=0,b
 $("mRep").onclick=()=>{const R=buildReport();$("repBody").innerHTML=R.map(([k,v])=>`<div class="row" style="padding:7px 0;border-bottom:1px solid #ffffff14"><span class="hist">${k}</span><b>${esc(String(v))}</b></div>`).join("");$("repModal").classList.remove("hide")};
 $("repClose").onclick=()=>$("repModal").classList.add("hide");
 $("repShare").onclick=async()=>{const t="75 HARD progress\n"+buildReport().map(([k,v])=>k+": "+v).join("\n");try{if(navigator.share)await navigator.share({text:t});else{await navigator.clipboard.writeText(t);$("repShare").textContent="Copied ✓"}}catch(e){}};
+$("mWG").onclick=async()=>{const ws=TL().filter(x=>+x.weight).map(x=>[x.lbl,+x.weight]);if(ws.length<2){alert("Log at least 2 AM weights first.");return}
+ const W=1080,H=1080,c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
+ x.shadowColor="rgba(0,0,0,.45)";x.shadowBlur=12;x.fillStyle="#fff";x.textAlign="center";
+ const f=ws[0][1],l=ws[ws.length-1][1],d=l-f,vals=ws.map(v=>v[1]),mn=Math.min(...vals),mx=Math.max(...vals),rg=Math.max(mx-mn,1);
+ x.font="800 64px system-ui,-apple-system,sans-serif";x.fillText("75 HARD",W/2,170);
+ x.font="600 40px system-ui,-apple-system,sans-serif";x.fillText(ws[ws.length-1][0]+" · AM weight",W/2,230);
+ const L=120,R=W-120,T=320,B=700,px=i=>L+(R-L)*i/(ws.length-1),py=v=>B-(B-T)*(v-mn)/rg;
+ x.strokeStyle="#ff4d2e";x.lineWidth=14;x.lineJoin=x.lineCap="round";x.beginPath();ws.forEach((v,i)=>i?x.lineTo(px(i),py(v[1])):x.moveTo(px(i),py(v[1])));x.stroke();
+ x.fillStyle="#fff";[0,ws.length-1].forEach(i=>{x.beginPath();x.arc(px(i),py(ws[i][1]),16,0,7);x.fill()});
+ const col=(cx,lab,val)=>{x.font="600 34px system-ui,-apple-system,sans-serif";x.fillText(lab,cx,820);x.font="800 76px system-ui,-apple-system,sans-serif";x.fillText(val,cx,905)};
+ col(W/6,"Start",f.toFixed(1));col(W/2,"Change",(d>0?"+":"")+d.toFixed(1));col(5*W/6,"Now",l.toFixed(1));
+ x.font="600 32px system-ui,-apple-system,sans-serif";x.fillText("lbs",W/2,965);
+ const blob=await new Promise(r=>c.toBlob(r,"image/png")),file=new File([blob],"75hard-weight.png",{type:"image/png"});
+ try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file]});return}}catch(e){if(e.name==="AbortError")return}
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=file.name;a.click()};
 $("mGif").onclick=async()=>{const ds=gifList();if(!ds.length){alert("Add some progress photos first.");return}
   const btn=$("mGif");btn.textContent="Building GIF…";btn.disabled=true;
   try{const {GIFEncoder,quantize,applyPalette}=await import("./gifenc.js");const W=360,H=540,c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
