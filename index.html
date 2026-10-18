@@ -184,7 +184,6 @@ button.main{padding:13px;margin-top:0}
   <button class="mi" id="mGif">🎞️ Export progress GIF</button>
   <div class="mh">Backups</div>
   <button class="mi" id="mExport">⬇️ Save a backup file</button>
-  <button class="mi" id="mPw">🔑 Backup password</button>
   <label class="mi">⬆️ Restore from backup<input type="file" accept=".json,application/json" id="mImport" class="hide"></label>
   <p class="hist" style="margin-top:auto;color:#9fb0d0">Your data is stored only on this phone. Sharing the link never shares your data.</p>
 </nav>
@@ -207,7 +206,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261018a";
+const APPV="v20261018b";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -552,26 +551,17 @@ const B64=u=>{let s="";const b=new Uint8Array(u);for(let i=0;i<b.length;i+=32768
 const BKP="t75bkpw",bkKeys={};
 async function bkKey(pw,salt){const id=pw+"|"+B64(salt);if(bkKeys[id])return bkKeys[id];const m=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);
  return bkKeys[id]=await crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:200000,hash:"SHA-256"},m,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
-let bkSalt=localStorage.getItem(BKP+"s")?UB64(localStorage.getItem(BKP+"s")):null;
-function bkPw(){let pw=localStorage.getItem(BKP);if(pw)return pw;pw=prompt("Set a password for your backup files (at least 4 characters). You'll need it to restore on a new phone, so don't lose it.");
- if(!pw||pw.length<4){if(pw!==null)alert("Password too short. Backup not saved.");return null}
- if(prompt("Type the password again to confirm.")!==pw){alert("Passwords didn't match. Backup not saved.");return null}
- localStorage.setItem(BKP,pw);bkSalt=crypto.getRandomValues(new Uint8Array(16));localStorage.setItem(BKP+"s",B64(bkSalt));return pw}
-if(localStorage.getItem(BKP)&&bkSalt)bkKey(localStorage.getItem(BKP),bkSalt);// warm key so sharing stays instant
+const APPSALT=new TextEncoder().encode("t75-backup-v2"),appKey=()=>bkKey("75HARD-local-backup-key",APPSALT);appKey();
 async function bkShare(blob,name){const f=new File([blob],name,{type:"application/json"});
  if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]});return}catch(e){if(e.name==="AbortError")return;
    if(e.name==="NotAllowedError"){const k=document.createElement("div");k.className="modal";k.style.zIndex=45;k.innerHTML='<div class="card"><h3 style="margin-top:0">🔒 Backup encrypted</h3><button class="plus" style="width:100%;padding:12px">Save it</button></div>';k.querySelector("button").onclick=async()=>{k.remove();try{await navigator.share({files:[f]})}catch(x){}};document.body.appendChild(k);return}}}
  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click()}
-$("mExport").onclick=async()=>{const pw=bkPw();if(!pw)return;const key=await bkKey(pw,bkSalt),iv=crypto.getRandomValues(new Uint8Array(12));
+$("mExport").onclick=async()=>{const key=await appKey(),iv=crypto.getRandomValues(new Uint8Array(12));
  const c=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,new TextEncoder().encode(JSON.stringify(S)));
- await bkShare(new Blob([JSON.stringify({t75enc:1,s:B64(bkSalt),i:B64(iv),c:B64(c)})],{type:"application/json"}),"75hard-backup.json")};
-$("mPw").onclick=()=>{const old=localStorage.getItem(BKP);if(old&&prompt("Current backup password?")!==old){alert("That's not the current password.");return}
- localStorage.removeItem(BKP);localStorage.removeItem(BKP+"s");if(bkPw())alert("Backup password updated. Older backup files still open with the old password.")};
+ await bkShare(new Blob([JSON.stringify({t75enc:2,i:B64(iv),c:B64(c)})],{type:"application/json"}),"75hard-backup.json")};
 $("mImport").onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(async t=>{let n;try{n=JSON.parse(t)}catch(x){alert("That file isn't a 75 Hard backup.");return}
-  if(n.t75enc){const salt=UB64(n.s),iv=UB64(n.i),c=UB64(n.c);let pw=localStorage.getItem(BKP),ok=null;
-   for(let tries=0;tries<4&&!ok;tries++){if(!pw||tries)pw=prompt(tries?"Wrong password. Try again:":"This backup is encrypted. Enter its password:");if(pw===null)return;
-    try{ok=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv},await bkKey(pw,salt),c)))}catch(x){}}
-   if(!ok){alert("Couldn't unlock that backup.");return}n=ok;if(!localStorage.getItem(BKP)){localStorage.setItem(BKP,pw);localStorage.setItem(BKP+"s",B64(salt))}}
+  if(n.t75enc){const iv=UB64(n.i),c=UB64(n.c),dec=async k=>JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv},k,c)));
+   try{n=n.t75enc===2?await dec(await appKey()):await dec(await bkKey(prompt("This older backup has a password. Enter it:")||"",UB64(n.s)))}catch(x){alert("Couldn't unlock that backup.");return}}
   if(!n.days){alert("That file isn't a 75 Hard backup.");return}
   if(!confirm("Replace the data on this phone with this backup?"))return;S=n;save();location.reload()})};
 $("backToday").onclick=()=>{viewDay=null;render()};
