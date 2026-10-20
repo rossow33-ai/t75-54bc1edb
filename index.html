@@ -182,6 +182,8 @@ button.main{padding:13px;margin-top:0}
   <button class="mi" id="mRep">📊 Progress report</button>
   <button class="mi" id="mWG">⚖️ Export weight graphic</button>
   <button class="mi" id="mGif">🎞️ Export progress GIF</button>
+  <div class="mh">History</div>
+  <button class="mi" id="mArc">🗄️ Archive</button>
   <div class="mh">Backups</div>
   <button class="mi" id="mExport">⬇️ Save a backup file</button>
   <label class="mi">⬆️ Restore from backup<input type="file" accept=".json,application/json" id="mImport" class="hide"></label>
@@ -197,6 +199,10 @@ button.main{padding:13px;margin-top:0}
   <button class="plus" id="wgB" style="width:100%;padding:12px;margin-top:8px">🖼️ With background</button>
   <button class="ghost" id="wgX" style="width:100%;margin-top:8px">Cancel</button>
 </div></div>
+<div class="modal hide" id="arcModal" style="z-index:40"><div class="card" style="max-height:85vh;overflow:auto">
+  <h3 style="margin-top:0">🗄️ Archive</h3><div id="arcBody"></div>
+  <button class="ghost" id="arcX" style="width:100%;margin-top:10px">Close</button>
+</div></div>
 <div class="modal hide" id="missModal"><div class="card">
   <h3 style="margin-top:0">You missed a day</h3>
   <p class="hist" id="missText"></p>
@@ -206,7 +212,7 @@ button.main{padding:13px;margin-top:0}
 </div></div>
 
 <script>
-const APPV="v20261018b";
+const APPV="v20261019a";
 (async()=>{try{const t=await (await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"})).text();const m=t.match(/APPV="([^"]+)"/);if(m&&m[1]!==APPV&&!sessionStorage.getItem("upd"+m[1])){sessionStorage.setItem("upd"+m[1],1);location.replace(location.pathname+"?v="+m[1])}}catch(e){}})();
 const PINK="75hard_pw";localStorage.removeItem(PINK);
 async function tryPw(pw,quiet){const want=localStorage.getItem(PINK);if(!want||pw===want){const l=document.getElementById("lock");if(l)l.remove();document.getElementById("appwrap").style.display="";
@@ -350,6 +356,7 @@ let gifI=0,gifT=null,gifOn=true;
 const TL=()=>{const out=(S.archive||[]).map(a=>({lbl:new Date(a.date+"T12:00").toLocaleDateString(undefined,{month:"short",day:"numeric"}),photo:a.photo,weight:a.weight}));
   for(let i=1;i<=75;i++){const d=S.days[i]||{};if(d.weight||S.photos[i])out.push({lbl:"Day "+i,photo:S.photos[i],weight:d.weight})}return out};
 const gifDays=()=>Object.keys(S.photos||{}).map(Number).filter(d=>S.photos[d]).sort((a,b)=>a-b);
+const TLcur=()=>TL().filter(x=>x.lbl.startsWith("Day "));
 const gifList=()=>TL().filter(x=>x.photo);
 function gifFrame(){const ds=gifList();if(!ds.length)return;gifI%=ds.length;$("gifImg").src=ds[gifI].photo;$("gifLbl").textContent=ds[gifI].lbl;gifI++}
 function pView(){const ds=gifList(),m=(S.pmode&&S.pmode!=="sld")?S.pmode:"gif";
@@ -365,7 +372,7 @@ function gifSync(){pView();const ds=gifList();if((S.pmode||"gif")!=="gif"){clear
   $("gifInfo").textContent=ds.length?`${ds.length} photo${ds.length>1?"s":""}`:"upload photos to build your timelapse";
   clearInterval(gifT);gifFrame();if(gifOn&&ds.length>1)gifT=setInterval(gifFrame,+$("gifSpeed").value)}
 function drawChart(){
-  const pts=[];TL().forEach(x=>{const w=parseFloat(x.weight);if(w)pts.push([pts.length+1,w])});
+  const pts=[];TLcur().forEach(x=>{const w=parseFloat(x.weight);if(w)pts.push([pts.length+1,w])});
   const svg=$("chart");
   if(!pts.length){svg.innerHTML=`<text x="150" y="55" fill="#8a8a96" font-size="12" text-anchor="middle">Log your AM weight to see the trend</text>`;$("wstats").innerHTML="";return}
   const ws=pts.map(p=>p[1]),mn=Math.min(...ws)-1,mx=Math.max(...ws)+1,maxX=Math.max(pts[pts.length-1][0],7);
@@ -461,7 +468,7 @@ const setSp=n=>{$("gifSpeed").value=Math.round(800/n);document.querySelectorAll(
 document.querySelectorAll("#gifSpd button").forEach(b=>b.onclick=()=>setSp(+b.dataset.sp));setSp(2);
 $("menuBtn").onclick=()=>document.body.classList.add("menu-open");
 window.menuClose=()=>document.body.classList.remove("menu-open");
-$("mExport").addEventListener("click",menuClose);$("mImport").addEventListener("change",menuClose);
+$("mExport").addEventListener("click",menuClose);$("mArc").addEventListener("click",menuClose);$("mImport").addEventListener("change",menuClose);
 
 let OCRW=null;const loadOCR=()=>new Promise((r,j)=>{if(window.Tesseract)return r();const sc=document.createElement("script");sc.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";sc.onload=r;sc.onerror=()=>j(new Error("couldn't load the text reader (are you online?)"));document.head.appendChild(sc)});
 const num=v=>v==null?null:parseFloat(String(v).replace(/[ ,]/g,""));
@@ -511,7 +518,7 @@ function buildReport(){const n=curDay(),D=S.days||{};let wo=0,mins=0,w1=0,w2=0,b
 $("mRep").onclick=()=>{const R=buildReport();$("repBody").innerHTML=R.map(([k,v])=>`<div class="row" style="padding:7px 0;border-bottom:1px solid #ffffff14"><span class="hist">${k}</span><b>${esc(String(v))}</b></div>`).join("");$("repModal").classList.remove("hide")};
 $("repClose").onclick=()=>$("repModal").classList.add("hide");
 $("repShare").onclick=async()=>{const t="75 HARD progress\n"+buildReport().map(([k,v])=>k+": "+v).join("\n");try{if(navigator.share)await navigator.share({text:t});else{await navigator.clipboard.writeText(t);$("repShare").textContent="Copied ✓"}}catch(e){}};
-async function saveWG(bg){const ws=TL().filter(x=>+x.weight).map(x=>[x.lbl,+x.weight]);if(ws.length<2){alert("Log at least 2 AM weights first.");return}
+async function saveWG(bg){const ws=TLcur().filter(x=>+x.weight).map(x=>[x.lbl,+x.weight]);if(ws.length<2){alert("Log at least 2 AM weights first.");return}
  const W=1080,H=1080,c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
  if(bg){const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,"#1c1c22");g.addColorStop(1,"#0e0e12");x.fillStyle=g;x.fillRect(0,0,W,H)}
  x.shadowColor=bg?"transparent":"rgba(0,0,0,.5)";x.shadowBlur=12;x.fillStyle="#fff";x.textAlign="center";
@@ -534,6 +541,17 @@ async function saveWG(bg){const ws=TL().filter(x=>+x.weight).map(x=>[x.lbl,+x.we
 const wgOpen=()=>$("wgModal").classList.remove("hide"),wgClose=()=>$("wgModal").classList.add("hide");
 $("mWG").onclick=wgOpen;$("wCard").onclick=wgOpen;$("wgX").onclick=wgClose;
 $("wgT").onclick=()=>{wgClose();saveWG(false)};$("wgB").onclick=()=>{wgClose();saveWG(true)};
+$("mArc").onclick=()=>{const A=S.attempts||[],R=S.archive||[];let h="";
+ if(!A.length)h='<p class="hist">No past attempts yet. If you ever restart, that attempt\'s weight log and stats get saved here.</p>';
+ A.slice().reverse().forEach((a,ri)=>{const n=A.length-ri,ws=R.filter(r=>r.weight&&r.date>=a.start&&r.date<=a.end).map(r=>+r.weight);
+  const f=d=>new Date(d+"T12:00").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+  let sp="";if(ws.length>1){const mn=Math.min(...ws),mx=Math.max(...ws),rg=Math.max(mx-mn,.5);sp=`<svg viewBox="0 0 300 60" style="width:100%;height:50px;margin-top:6px"><polyline fill="none" stroke="#ff4d2e" stroke-width="3" stroke-linejoin="round" points="${ws.map((w,i)=>(10+280*i/(ws.length-1)).toFixed(1)+","+(52-44*(w-mn)/rg).toFixed(1)).join(" ")}"/></svg>`}
+  const dw=ws.length>1?ws[ws.length-1]-ws[0]:null;
+  h+=`<div style="padding:10px 0;border-bottom:1px solid #ffffff14"><div class="row"><b>Attempt ${n}</b><span class="hist">${f(a.start)} – ${f(a.end)}</span></div>
+   <div class="hist">Reached ${a.reached} of 75 days${a.reason?" · "+esc(a.reason):""}</div>
+   ${ws.length?`<div class="hist">Weight ${ws[0]} → ${ws[ws.length-1]} lbs${dw!==null?` (${dw>0?"+":""}${dw.toFixed(1)})`:""}</div>`:""}${sp}</div>`});
+ $("arcBody").innerHTML=h;$("arcModal").classList.remove("hide")};
+$("arcX").onclick=()=>$("arcModal").classList.add("hide");
 $("mGif").onclick=async()=>{const ds=gifList();if(!ds.length){alert("Add some progress photos first.");return}
   const btn=$("mGif");btn.textContent="Building GIF…";btn.disabled=true;
   try{const {GIFEncoder,quantize,applyPalette}=await import("./gifenc.js");const W=360,H=540,c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
